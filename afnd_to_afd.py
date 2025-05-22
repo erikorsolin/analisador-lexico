@@ -27,7 +27,7 @@ def determinize(afnd):
     afd.add_state(0)
     afd.set_initial_state(0)
     
-    # Processar estados finais
+    # Processar estados finais no conjunto inicial
     for state in initial_closure:
         for final_state, pattern in afnd.final_states:
             if state == final_state:

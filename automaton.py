@@ -37,60 +37,6 @@ class Automaton:
         self.add_state(state)
         self.final_states.add(state)
     
-    def get_epsilon_closure(self, state_or_states):
-        """
-        Retorna o ε-fechamento de um estado ou conjunto de estados.
-        O ε-fechamento inclui todos os estados alcançáveis por transições ε.
-        """
-        if isinstance(state_or_states, (int, str)):
-            states = {state_or_states}
-        else:
-            states = set(state_or_states)
-        
-        closure = set(states)
-        stack = list(states)
-        
-        while stack:
-            state = stack.pop()
-            for next_state in self.transitions[state].get('&', set()):
-                if next_state not in closure:
-                    closure.add(next_state)
-                    stack.append(next_state)
-        
-        return closure
-    
-    def get_move(self, states, symbol):
-        """
-        Retorna o conjunto de estados alcançáveis a partir de states
-        usando transições com o símbolo dado.
-        """
-        result = set()
-        for state in states:
-            result.update(self.transitions[state].get(symbol, set()))
-        return result
-    
-    def accepts(self, word):
-        """Verifica se o autômato aceita a palavra."""
-        if self.initial_state is None:
-            return False
-        
-        current_states = self.get_epsilon_closure(self.initial_state)
-        
-        for symbol in word:
-            if symbol not in self.alphabet:
-                return False
-            
-            next_states = self.get_move(current_states, symbol)
-            current_states = set()
-            for state in next_states:
-                current_states.update(self.get_epsilon_closure(state))
-            
-            if not current_states:
-                return False
-        
-        # Verifica se pelo menos um dos estados atuais é final
-        return any(state in self.final_states for state in current_states)
-    
     def __str__(self):
         """Representação em string do autômato."""
         result = []

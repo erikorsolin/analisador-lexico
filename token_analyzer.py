@@ -48,9 +48,6 @@ class TokenAnalyzer:
         Reconhece o próximo token no texto a partir da posição especificada.
         Retorna uma tupla (lexeme, pattern, length) ou None se nenhum token for reconhecido.
         """
-        if start_pos >= len(text):
-            return None
-        
         current_state = self.automaton.initial_state
         max_final_pos = -1
         max_final_pattern = None
@@ -60,32 +57,30 @@ class TokenAnalyzer:
         while pos < len(text) and not text[pos].isspace():
             char = text[pos]
             
-            # Tentar fazer a transição para este caractere
-            next_states = set()
+            # Verificar se há transição para este caractere
+            next_state = None
             
             for symbol, to_states in self.automaton.transitions.get(current_state, {}).items():
                 if symbol == char:
-                    next_states.update(to_states)
+                    next_state = next(iter(to_states))  # AFD tem apenas um próximo estado
+                    break
             
-            if next_states:
-                # Se encontrou transição, continua
-                current_state = next(iter(next_states))  # AFD tem apenas uma transição por símbolo
+            if next_state is not None:
+                current_state = next_state
                 pos += 1
                 
-                # Verificar se é um estado final
-                for final_state, pattern in self.automaton.final_states:
-                    if final_state == current_state:
+                # Verificar se este é um estado final
+                for state, pattern in self.automaton.final_states:
+                    if state == current_state:
                         max_final_pos = pos - 1
                         max_final_pattern = pattern
                         break
             else:
-                # Se não encontrou transição, para
+                # Não há transição para este caractere
                 break
         
         if max_final_pos >= start_pos:
-            # Encontrou um token válido
             lexeme = text[start_pos:max_final_pos + 1]
             return (lexeme, max_final_pattern, len(lexeme))
         
-        # Nenhum token válido encontrado
         return None

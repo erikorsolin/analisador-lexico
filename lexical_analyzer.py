@@ -4,8 +4,7 @@ Contém a interface para carregar expressões regulares, gerar AFDs, e analisar 
 """
 import sys
 from collections import defaultdict
-from re_to_afnd import RegexToAFND
-from afnd_to_afd import determinize
+from re_to_afd import RegexToAFD
 from automaton import Automaton
 from symbol_table import SymbolTable
 from token_analyzer import TokenAnalyzer
@@ -18,7 +17,6 @@ class LexicalAnalyzer:
         self.symbol_table = SymbolTable()
         self.token_analyzer = None
         
-    # Ajuste no método load_regex_definitions
     def load_regex_definitions(self, filename):
         """Carrega as definições de expressões regulares do arquivo."""
         try:
@@ -59,8 +57,7 @@ class LexicalAnalyzer:
     
     def add_pattern(self, pattern_name, regex):
         """Adiciona um padrão e sua expressão regular."""
-        print(f"Adicionando padrão: {pattern_name} com regex: {regex}")
-        converter = RegexToAFND()
+        converter = RegexToAFD()
         automaton = converter.convert(regex)
         automaton.pattern = pattern_name
         
@@ -69,61 +66,63 @@ class LexicalAnalyzer:
         return automaton
     
     def combine_automata(self):
-        """Combina todos os autômatos via ε-transições."""
+        """
+        Combina todos os autômatos em um único AFD.
+        Utilizamos uma técnica semelhante à união de AFDs com um novo estado inicial.
+        """
         if not self.automata:
             print("Nenhum autômato para combinar.")
             return None
         
         print("Combinando automatos...")
         combined = Automaton()
-        combined.states = {0}  # Estado inicial do autômato combinado
+        
+        # Criar um novo estado inicial
         combined.initial_state = 0
-        combined.final_states = set()
-        combined.alphabet = set()
-        combined.transitions = defaultdict(lambda: defaultdict(set))
+        combined.states.add(0)
         
-        # Mapeamento de estados originais para estados no novo autômato
-        state_mapping = {}
         next_state = 1
+        state_mapping = {}
         
-        # Adicionar ε-transição do estado inicial para cada autômato
+        # Mapear estados de cada autômato para novos estados no automato combinado
         for idx, automaton in enumerate(self.automata):
             pattern = self.patterns[idx]
             
-            # Mapear o estado inicial do autômato
-            state_mapping[(id(automaton), automaton.initial_state)] = next_state
-            
-            # Adicionar ε-transição
-            combined.add_transition(0, '&', next_state)
-            
-            # Atualizar próximo estado disponível
-            next_state += 1
-        
-        # Adicionar todos os estados e transições de cada autômato
-        for idx, automaton in enumerate(self.automata):
-            pattern = self.patterns[idx]
-            
-            # Adicionar estados
             for state in automaton.states:
-                if (id(automaton), state) not in state_mapping:
-                    state_mapping[(id(automaton), state)] = next_state
-                    next_state += 1
+                state_mapping[(idx, state)] = next_state
+                combined.add_state(next_state)
+                
+                # Se o estado é final no autômato original, também é no combinado
+                if state in automaton.final_states:
+                    combined.final_states.add((next_state, pattern))
+                
+                next_state += 1
+        
+        # Adicionar transições do estado inicial para os estados iniciais de cada autômato
+        for idx, automaton in enumerate(self.automata):
+            mapped_initial = state_mapping[(idx, automaton.initial_state)]
             
-            # Adicionar transições
+            # Para cada símbolo no alfabeto do autômato original
+            for symbol in automaton.alphabet:
+                # Para cada transição do estado inicial no autômato original
+                for to_state in automaton.transitions.get(automaton.initial_state, {}).get(symbol, set()):
+                    mapped_to = state_mapping[(idx, to_state)]
+                    combined.add_transition(0, symbol, mapped_to)
+        
+        # Adicionar todas as outras transições
+        for idx, automaton in enumerate(self.automata):
             for from_state, transitions in automaton.transitions.items():
-                mapped_from = state_mapping[(id(automaton), from_state)]
+                # Ignorar o estado inicial, já processado acima
+                if from_state == automaton.initial_state:
+                    continue
+                
+                mapped_from = state_mapping[(idx, from_state)]
                 
                 for symbol, to_states in transitions.items():
                     for to_state in to_states:
-                        mapped_to = state_mapping[(id(automaton), to_state)]
+                        mapped_to = state_mapping[(idx, to_state)]
                         combined.add_transition(mapped_from, symbol, mapped_to)
-            
-            # Adicionar estados finais com informação do padrão
-            for final_state in automaton.final_states:
-                mapped_final = state_mapping[(id(automaton), final_state)]
-                combined.final_states.add((mapped_final, pattern))
         
-        combined.states = set(range(next_state))
         self.combined_automaton = combined
         return combined
     
@@ -136,11 +135,8 @@ class LexicalAnalyzer:
             print("Falha ao gerar o analisador léxico.")
             return False
         
-        print("Determinizando o autômato combinado...")
-        self.determinized_automaton = determinize(self.combined_automaton)
-        
         print("Criando analisador de tokens...")
-        self.token_analyzer = TokenAnalyzer(self.determinized_automaton, self.symbol_table)
+        self.token_analyzer = TokenAnalyzer(self.combined_automaton, self.symbol_table)
         
         return True
     
@@ -182,7 +178,7 @@ class LexicalAnalyzer:
         else:
             print(f"Estados finais: {', '.join(map(str, automaton.final_states))}")
         
-        print(f"Alfabeto: {', '.join(sorted(automaton.alphabet - {'&'}))}")
+        print(f"Alfabeto: {', '.join(sorted(automaton.alphabet))}")
         
         print("\nTabela de Transições:")
         # Criar cabeçalho da tabela
@@ -204,70 +200,33 @@ class LexicalAnalyzer:
     
     def save_automaton_to_file(self, automaton, filename):
         """Salva um autômato em um arquivo no formato especificado."""
-        with open(filename, 'w') as file:
-            # Número de estados
-            file.write(f"{len(automaton.states)}\n")
+        try:
+            with open(filename, 'w') as file:
+                # Número de estados
+                file.write(f"{len(automaton.states)}\n")
+                
+                # Estado inicial
+                file.write(f"{automaton.initial_state}\n")
+                
+                # Estados finais
+                if isinstance(automaton.final_states, set) and all(isinstance(fs, tuple) for fs in automaton.final_states):
+                    final_states = sorted([state for state, _ in automaton.final_states])
+                else:
+                    final_states = sorted(automaton.final_states)
+                file.write(f"{','.join(map(str, final_states))}\n")
+                
+                # Alfabeto
+                alphabet = sorted(automaton.alphabet)
+                file.write(f"{','.join(alphabet)}\n")
+                
+                # Transições
+                for state in sorted(automaton.states):
+                    for symbol in sorted(automaton.alphabet):
+                        if symbol in automaton.transitions.get(state, {}):
+                            targets = automaton.transitions[state][symbol]
+                            for target in sorted(targets):
+                                file.write(f"{state},{symbol},{target}\n")
             
-            # Estado inicial
-            file.write(f"{automaton.initial_state}\n")
-            
-            # Estados finais
-            if isinstance(automaton.final_states, set) and all(isinstance(fs, tuple) for fs in automaton.final_states):
-                final_states = sorted([state for state, _ in automaton.final_states])
-            else:
-                final_states = sorted(automaton.final_states)
-            file.write(f"{','.join(map(str, final_states))}\n")
-            
-            # Alfabeto (excluindo epsilon)
-            alphabet = sorted(automaton.alphabet - {'&'})
-            file.write(f"{','.join(alphabet)}\n")
-            
-            # Transições
-            for state in sorted(automaton.states):
-                for symbol in sorted(automaton.alphabet):
-                    if symbol == '&':  # Pular transições epsilon
-                        continue
-                    if symbol in automaton.transitions.get(state, {}):
-                        targets = automaton.transitions[state][symbol]
-                        for target in sorted(targets):
-                            file.write(f"{state},{symbol},{target}\n")
-
-def main():
-    if len(sys.argv) < 3:
-        print("Uso: python lexical_analyzer.py <arquivo_definicoes> <arquivo_teste> [arquivo_saida]")
-        sys.exit(1)
-    
-    regex_file = sys.argv[1]
-    test_file = sys.argv[2]
-    output_file = sys.argv[3] if len(sys.argv) > 3 else "tokens.txt"
-    
-    analyzer = LexicalAnalyzer()
-    
-    # Carregar definições de expressões regulares
-    if not analyzer.load_regex_definitions(regex_file):
-        sys.exit(1)
-    
-    # Gerar analisador léxico
-    if not analyzer.generate_lexical_analyzer():
-        sys.exit(1)
-    
-    # Exibir e salvar os autômatos
-    for i, automaton in enumerate(analyzer.automata):
-        analyzer.print_automaton(automaton, f"Autômato para {analyzer.patterns[i]}")
-        analyzer.save_automaton_to_file(automaton, f"automaton_{analyzer.patterns[i]}.txt")
-    
-    analyzer.print_automaton(analyzer.combined_automaton, "Autômato Combinado")
-    analyzer.save_automaton_to_file(analyzer.combined_automaton, "automaton_combined.txt")
-    
-    analyzer.print_automaton(analyzer.determinized_automaton, "Autômato Determinizado")
-    analyzer.save_automaton_to_file(analyzer.determinized_automaton, "automaton_determinized.txt")
-    
-    # Analisar arquivo de teste
-    tokens = analyzer.analyze_file(test_file, output_file)
-    
-    print(f"\nTokens gerados e salvos em {output_file}:")
-    for token in tokens:
-        print(token)
-
-if __name__ == "__main__":
-    main()
+            print(f"Autômato salvo em {filename}")
+        except Exception as e:
+            print(f"Erro ao salvar autômato: {str(e)}")
