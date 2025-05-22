@@ -196,24 +196,6 @@ class LexicalAnalyzer:
         
         print(f"Alfabeto: {', '.join(sorted(automaton.alphabet - {'&'}))}")
         
-        print("\nTabela de Transições:")
-        # Criar cabeçalho da tabela
-        headers = ["Estado"] + sorted(automaton.alphabet - {'&'})
-        header_format = "{:<8}" * len(headers)
-        print(header_format.format(*headers))
-        
-        # Imprimir linhas da tabela
-        for state in sorted(automaton.states):
-            row = [str(state)]
-            for symbol in sorted(automaton.alphabet - {'&'}):
-                if symbol in automaton.transitions.get(state, {}):
-                    targets = automaton.transitions[state][symbol]
-                    cell = ", ".join(map(str, targets))
-                else:
-                    cell = "-"
-                row.append(cell)
-            print(header_format.format(*row))
-            
 
     def save_automaton_to_file(self, automaton, filename):
         """Salva um autômato em um arquivo no formato especificado dentro da pasta AFs/."""
