@@ -9,6 +9,7 @@ from afnd_to_afd import determinize
 from automaton import Automaton
 from symbol_table import SymbolTable
 from token_analyzer import TokenAnalyzer
+import os
 
 class LexicalAnalyzer:
     def __init__(self):
@@ -212,11 +213,20 @@ class LexicalAnalyzer:
                     cell = "-"
                 row.append(cell)
             print(header_format.format(*row))
-    
+            
+
     def save_automaton_to_file(self, automaton, filename):
-        """Salva um autômato em um arquivo no formato especificado."""
+        """Salva um autômato em um arquivo no formato especificado dentro da pasta AFs/."""
+        # Garantir que o diretório AFs/ exista
+        directory = "AFs"
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        
+        # Construir o caminho completo do arquivo
+        filepath = os.path.join(directory, filename)
+        
         try:
-            with open(filename, 'w') as file:
+            with open(filepath, 'w') as file:
                 # Número de estados
                 file.write(f"{len(automaton.states)}\n")
                 
@@ -242,6 +252,6 @@ class LexicalAnalyzer:
                             for target in sorted(targets):
                                 file.write(f"{state},{symbol},{target}\n")
             
-            print(f"Autômato salvo em {filename}")
+            print(f"Autômato salvo em {filepath}")
         except Exception as e:
             print(f"Erro ao salvar autômato: {str(e)}")

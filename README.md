@@ -24,6 +24,8 @@ Este comando executa o analisador léxico usando os arquivos da pasta ```test_ca
 
 3. Arquivo de saída: será criado como "tokens_case1.txt" na mesma pasta
 
+4. Os autômatos gerados serão salvos no diretório `AFs/`
+
 
 
 ### Executar outros casos de teste

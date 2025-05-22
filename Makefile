@@ -1,10 +1,8 @@
 # Lista de arquivos ou diretórios a serem removidos
 CLEAN_FILES = \
 	__pycache__ \
-	afd_*.txt \
-	afnd_*.txt \
-	tokens.txt \
-	test_cases/*/tokens_*.txt
+	test_cases/*/tokens_*.txt \
+	AFs/*.txt
 
 # Diretório dos casos de teste
 TEST_DIR = test_cases
