@@ -31,7 +31,12 @@ def main():
         return
     
     # Gerar analisador léxico
-    print("\nGerando analisador léxico usando algoritmo Follow Pos...")
+    print("\nGerando analisador léxico seguindo o fluxo:")
+    print("1. ER → AFD (usando Follow Pos)")
+    print("2. União de AFDs via ε-transição → AFND")
+    print("3. Determinização do AFND → AFD")
+    print("4. Construção da tabela de símbolos")
+    
     if not analyzer.generate_lexical_analyzer():
         print("Falha ao gerar analisador léxico. Abortando.")
         return
@@ -40,11 +45,14 @@ def main():
     print("\nSalvando autômatos gerados...")
     for i, automaton in enumerate(analyzer.automata):
         pattern = analyzer.patterns[i]
-        analyzer.print_automaton(automaton, f"Autômato para '{pattern}'")
-        analyzer.save_automaton_to_file(automaton, f"automaton_{pattern}.txt")
+        analyzer.print_automaton(automaton, f"AFD para '{pattern}' (via Follow Pos)")
+        analyzer.save_automaton_to_file(automaton, f"afd_{pattern}.txt")
     
-    analyzer.print_automaton(analyzer.combined_automaton, "Autômato Combinado (AFD)")
-    analyzer.save_automaton_to_file(analyzer.combined_automaton, "automaton_combined.txt")
+    analyzer.print_automaton(analyzer.combined_automaton, "Autômato Combinado (AFND via ε-transição)")
+    analyzer.save_automaton_to_file(analyzer.combined_automaton, "afnd_combined.txt")
+    
+    analyzer.print_automaton(analyzer.determinized_automaton, "Autômato Determinizado (AFD)")
+    analyzer.save_automaton_to_file(analyzer.determinized_automaton, "afd_determinized.txt")
     
     # Analisar arquivo de teste
     print(f"\nAnalisando arquivo de teste '{test_file}'...")

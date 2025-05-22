@@ -5,6 +5,7 @@ Contém a interface para carregar expressões regulares, gerar AFDs, e analisar 
 import sys
 from collections import defaultdict
 from re_to_afd import RegexToAFD
+from afnd_to_afd import determinize
 from automaton import Automaton
 from symbol_table import SymbolTable
 from token_analyzer import TokenAnalyzer
@@ -14,6 +15,7 @@ class LexicalAnalyzer:
         self.automata = []
         self.patterns = []
         self.combined_automaton = None
+        self.determinized_automaton = None
         self.symbol_table = SymbolTable()
         self.token_analyzer = None
         
@@ -61,61 +63,64 @@ class LexicalAnalyzer:
         automaton = converter.convert(regex)
         automaton.pattern = pattern_name
         
+        # Adicionar informação do padrão aos estados finais do autômato
+        original_finals = automaton.final_states.copy()
+        automaton.final_states = set()
+        for final in original_finals:
+            automaton.final_states.add((final, pattern_name))
+        
         self.patterns.append(pattern_name)
         self.automata.append(automaton)
         return automaton
     
     def combine_automata(self):
         """
-        Combina todos os autômatos em um único AFD.
-        Utilizamos uma técnica semelhante à união de AFDs com um novo estado inicial.
+        Combina todos os autômatos via ε-transições.
+        Isso converte os AFDs individuais em um AFND combinado.
         """
         if not self.automata:
             print("Nenhum autômato para combinar.")
             return None
         
-        print("Combinando automatos...")
+        print("Combinando automatos via ε-transições...")
         combined = Automaton()
-        
-        # Criar um novo estado inicial
+        combined.states = {0}  # Estado inicial do autômato combinado
         combined.initial_state = 0
-        combined.states.add(0)
+        combined.final_states = set()
         
-        next_state = 1
+        # Mapeamento de estados originais para estados no novo autômato
         state_mapping = {}
+        next_state = 1
         
         # Mapear estados de cada autômato para novos estados no automato combinado
         for idx, automaton in enumerate(self.automata):
             pattern = self.patterns[idx]
             
+            # Mapear os estados
             for state in automaton.states:
                 state_mapping[(idx, state)] = next_state
                 combined.add_state(next_state)
                 
                 # Se o estado é final no autômato original, também é no combinado
-                if state in automaton.final_states:
-                    combined.final_states.add((next_state, pattern))
+                if isinstance(automaton.final_states, set) and any(isinstance(fs, tuple) and fs[0] == state for fs in automaton.final_states):
+                    for final_state, pattern in automaton.final_states:
+                        if final_state == state:
+                            combined.final_states.add((next_state, pattern))
+                            break
                 
                 next_state += 1
-        
-        # Adicionar transições do estado inicial para os estados iniciais de cada autômato
-        for idx, automaton in enumerate(self.automata):
-            mapped_initial = state_mapping[(idx, automaton.initial_state)]
             
-            # Para cada símbolo no alfabeto do autômato original
+            # Adicionar ε-transição do estado inicial combinado para o estado inicial do autômato
+            mapped_initial = state_mapping[(idx, automaton.initial_state)]
+            combined.add_transition(0, '&', mapped_initial)
+            
+            # Adicionar símbolos do alfabeto
             for symbol in automaton.alphabet:
-                # Para cada transição do estado inicial no autômato original
-                for to_state in automaton.transitions.get(automaton.initial_state, {}).get(symbol, set()):
-                    mapped_to = state_mapping[(idx, to_state)]
-                    combined.add_transition(0, symbol, mapped_to)
+                combined.add_symbol(symbol)
         
-        # Adicionar todas as outras transições
+        # Adicionar todas as transições de cada autômato
         for idx, automaton in enumerate(self.automata):
             for from_state, transitions in automaton.transitions.items():
-                # Ignorar o estado inicial, já processado acima
-                if from_state == automaton.initial_state:
-                    continue
-                
                 mapped_from = state_mapping[(idx, from_state)]
                 
                 for symbol, to_states in transitions.items():
@@ -127,7 +132,7 @@ class LexicalAnalyzer:
         return combined
     
     def generate_lexical_analyzer(self):
-        """Gera o analisador léxico a partir dos autômatos combinados."""
+        """Gera o analisador léxico a partir dos autômatos combinados e determinizados."""
         if not self.combined_automaton:
             self.combine_automata()
         
@@ -135,8 +140,11 @@ class LexicalAnalyzer:
             print("Falha ao gerar o analisador léxico.")
             return False
         
+        print("Determinizando o autômato combinado...")
+        self.determinized_automaton = determinize(self.combined_automaton)
+        
         print("Criando analisador de tokens...")
-        self.token_analyzer = TokenAnalyzer(self.combined_automaton, self.symbol_table)
+        self.token_analyzer = TokenAnalyzer(self.determinized_automaton, self.symbol_table)
         
         return True
     
@@ -178,18 +186,18 @@ class LexicalAnalyzer:
         else:
             print(f"Estados finais: {', '.join(map(str, automaton.final_states))}")
         
-        print(f"Alfabeto: {', '.join(sorted(automaton.alphabet))}")
+        print(f"Alfabeto: {', '.join(sorted(automaton.alphabet - {'&'}))}")
         
         print("\nTabela de Transições:")
         # Criar cabeçalho da tabela
-        headers = ["Estado"] + sorted(automaton.alphabet)
+        headers = ["Estado"] + sorted(automaton.alphabet - {'&'})
         header_format = "{:<8}" * len(headers)
         print(header_format.format(*headers))
         
         # Imprimir linhas da tabela
         for state in sorted(automaton.states):
             row = [str(state)]
-            for symbol in sorted(automaton.alphabet):
+            for symbol in sorted(automaton.alphabet - {'&'}):
                 if symbol in automaton.transitions.get(state, {}):
                     targets = automaton.transitions[state][symbol]
                     cell = ", ".join(map(str, targets))
@@ -215,13 +223,13 @@ class LexicalAnalyzer:
                     final_states = sorted(automaton.final_states)
                 file.write(f"{','.join(map(str, final_states))}\n")
                 
-                # Alfabeto
-                alphabet = sorted(automaton.alphabet)
+                # Alfabeto (excluindo epsilon)
+                alphabet = sorted(automaton.alphabet - {'&'})
                 file.write(f"{','.join(alphabet)}\n")
                 
                 # Transições
                 for state in sorted(automaton.states):
-                    for symbol in sorted(automaton.alphabet):
+                    for symbol in sorted(automaton.alphabet - {'&'}):
                         if symbol in automaton.transitions.get(state, {}):
                             targets = automaton.transitions[state][symbol]
                             for target in sorted(targets):

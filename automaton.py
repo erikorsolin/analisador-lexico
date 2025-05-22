@@ -37,6 +37,38 @@ class Automaton:
         self.add_state(state)
         self.final_states.add(state)
     
+    def get_epsilon_closure(self, state_or_states):
+        """
+        Retorna o ε-fechamento de um estado ou conjunto de estados.
+        O ε-fechamento inclui todos os estados alcançáveis por transições ε.
+        """
+        if isinstance(state_or_states, (int, str)):
+            states = {state_or_states}
+        else:
+            states = set(state_or_states)
+        
+        closure = set(states)
+        stack = list(states)
+        
+        while stack:
+            state = stack.pop()
+            for next_state in self.transitions[state].get('&', set()):
+                if next_state not in closure:
+                    closure.add(next_state)
+                    stack.append(next_state)
+        
+        return closure
+    
+    def get_move(self, states, symbol):
+        """
+        Retorna o conjunto de estados alcançáveis a partir de states
+        usando transições com o símbolo dado.
+        """
+        result = set()
+        for state in states:
+            result.update(self.transitions[state].get(symbol, set()))
+        return result
+    
     def __str__(self):
         """Representação em string do autômato."""
         result = []
