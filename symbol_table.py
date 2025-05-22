@@ -13,7 +13,7 @@ class SymbolTable:
         Retorna True se o símbolo foi adicionado, False se já existia.
         """
         if lexeme in self.reserved_words:
-            # Palavras reservadas têm prioridade
+            # Palavras reservadas têm prioridade e sempre recebem o padrão "PR"
             self.symbols[lexeme] = "PR"
             return True
         

@@ -38,6 +38,13 @@ class LexicalAnalyzer:
                     
                     if pattern_name and regex:
                         print(f"Adicionando padrão: {pattern_name} com regex: {regex}")
+                        
+                        # Se for o padrão "pr", adicionar palavras reservadas à tabela de símbolos
+                        if pattern_name.lower() == "pr":
+                            reserved_words = [w.strip() for w in regex.split('|')]
+                            for word in reserved_words:
+                                self.symbol_table.add_reserved_word(word)
+                        
                         try:
                             self.add_pattern(pattern_name, regex)
                         except Exception as e:
@@ -55,7 +62,7 @@ class LexicalAnalyzer:
             return False
         except Exception as e:
             print(f"Erro ao carregar definições: {str(e)}")
-            return False
+            return False    
     
     def add_pattern(self, pattern_name, regex):
         """Adiciona um padrão e sua expressão regular."""

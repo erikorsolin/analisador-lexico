@@ -33,7 +33,10 @@ class TokenAnalyzer:
                 # Atualizar a tabela de símbolos
                 self.symbol_table.add_symbol(lexeme, pattern)
                 
-                tokens.append(f"<{lexeme}, {pattern}>")
+                # Verificar se o lexema é uma palavra reservada
+                final_pattern = self.symbol_table.get_pattern(lexeme)
+                
+                tokens.append(f"<{lexeme}, {final_pattern}>")
                 position += length
             else:
                 # Caractere não reconhecido

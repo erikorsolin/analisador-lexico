@@ -1,12 +1,103 @@
 # Analisador Léxico - Framework
 
 ## Descrição
-Este projeto implementa um framework para a geração de analisadores léxicos baseados em expressões regulares. O sistema segue um fluxo específico para processar expressões regulares e gerar tokens:
+Este projeto implementa um framework para a geração de analisadores léxicos baseados em expressões regulares. O sistema segue um fluxo específico para processar expressões regulares e gerar tokens.
 
-1. **Conversão de Expressões Regulares para AFD**
-2. **União dos AFDs via ε-transição**
-3. **Determinização do AFND**
-4. **Construção da Tabela de Símbolos**
+
+## Instruções de Uso
+
+### Pré-requisitos
+- Python 3.6 ou superior
+- Make
+
+### Executar um caso de teste específico
+
+```bash
+make run case=1
+```
+
+Este comando executa o analisador léxico usando os arquivos da pasta ```test_cases/case1/```:
+
+1. Arquivo de definições regulares: no padrão "definicoes.txt"
+
+2. Arquivo de teste com o texto fonte: no padrão "teste.txt"
+
+3. Arquivo de saída: será criado como "tokens_case1.txt" na mesma pasta
+
+
+
+### Executar outros casos de teste
+
+```bash
+make run case=2    # Executa o caso 2
+make run case=3    # Executa o caso 3
+```
+
+### Limpar arquivos gerados
+
+```bash
+make clean
+```
+
+Este comando remove todos os arquivos temporários gerados pelo analisador léxico.
+
+
+### Criando Novos Casos de Teste
+
+1. Crie uma nova pasta em ```test_cases/```:
+
+    ```bash
+    mkdir -p test_cases/caseX    # Substitua X pelo número do caso
+    ```
+
+2. Adicione os arquivos necessários:
+
+    **definicoes.txt**: Arquivo com as definições de expressões regulares
+
+    **teste.txt**: Arquivo com o texto a ser analisado
+
+3. Execute o teste:
+
+    ```bash
+    make run case=X    # Substitua X pelo número do caso
+    ```
+
+### Formato de Definições
+
+O arquivo de definições deve conter uma expressão regular por linha, no formato:
+
+```
+nome_padrao: expressao_regular
+```
+
+Exemplo:
+
+``` 
+pr: if | else | while | for | int | float | return
+id: [a-zA-Z]([a-zA-Z]|[0-9])*
+num: [1-9]([0-9])* | 0
+op: \+ | \- | \* | \/ | = | < | > | <= | >= | ==
+delim: \( | \) | \{ | \} | ; | ,
+```
+Saída
+
+O programa gerará um arquivo de saída contendo os tokens encontrados no formato:
+
+```
+<lexema, padrão>
+
+```
+Exemplo:
+
+```
+<if, PR>
+<(, delim>
+<x, id>
+<>, op>
+<5, num>
+<), delim>
+```
+
 
 ## Estrutura do Projeto
 
@@ -101,14 +192,3 @@ O sistema gerencia uma tabela de símbolos que:
 2. Associa cada lexema a seu padrão correspondente
 3. Trata palavras reservadas com precedência especial
 4. Atribui o tipo "PR" para palavras reservadas
-
-## Instruções de Uso
-
-### Pré-requisitos
-- Python 3.6 ou superior
-
-### Execução
-O programa pode ser executado através da linha de comando com a seguinte sintaxe:
-
-```bash
-python main.py <arquivo_definicoes> <arquivo_teste> [arquivo_saida]
