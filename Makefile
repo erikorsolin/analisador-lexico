@@ -11,3 +11,6 @@ clean:
 	@echo "Limpando arquivos..."
 	@rm -rf $(CLEAN_FILES)
 	@echo "Limpeza concluída."
+
+run:
+	@python3 main.py definicoes.txt teste.txt tokens.txt
