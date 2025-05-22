@@ -112,3 +112,17 @@ O programa pode ser executado através da linha de comando com a seguinte sintax
 
 ```bash
 python main.py <arquivo_definicoes> <arquivo_teste> [arquivo_saida]
+```
+
+Ou pelo comando do make
+
+```bash
+make run
+```
+
+Para limpar os arquivos gerados, execute
+
+```bash
+make clean
+```
+
