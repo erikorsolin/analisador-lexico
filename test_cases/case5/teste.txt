@@ -1,0 +1,4 @@
+a = (b + c) * d;
+resultado = (x > y) && (z < 10);
+flag = (valor != 0) || (status == 1);
+media = (nota1 + nota2 + nota3) / 3;
