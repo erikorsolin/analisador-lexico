@@ -2,7 +2,7 @@
 Implementação da determinização de Autômatos Finitos Não-Determinísticos.
 """
 from automaton import Automaton
-from collections import defaultdict, deque
+from collections import deque
 
 def determinize(afnd):
     """

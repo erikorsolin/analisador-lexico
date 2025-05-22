@@ -2,8 +2,6 @@
 Arquivo principal do analisador léxico.
 Contém a interface para carregar expressões regulares, gerar AFDs, e analisar textos.
 """
-import sys
-from collections import defaultdict
 from re_to_afd import RegexToAFD
 from afnd_to_afd import determinize
 from automaton import Automaton
