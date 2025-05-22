@@ -111,7 +111,7 @@ O sistema gerencia uma tabela de símbolos que:
 O programa pode ser executado através da linha de comando com a seguinte sintaxe:
 
 ```bash
-python main.py <arquivo_definicoes> <arquivo_teste> [arquivo_saida]
+python main.py definicoes.txt teste.txt tokens.txt
 ```
 
 Ou pelo comando do make
