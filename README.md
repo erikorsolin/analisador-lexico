@@ -10,6 +10,36 @@ Este projeto implementa um framework para a geração de analisadores léxicos b
 - Python 3.6 ou superior
 - Make
 
+### Executar a interface gráfica
+
+Passo 1: Criar um ambiente virtual
+```bash
+# No Windows
+python -m venv venv
+
+# No Linux/macOS
+python3 -m venv venv
+```
+
+Passo 2: Ativar o ambiente virtual
+```bash
+# No Windows
+venv\Scripts\activate
+
+# No Linux/macOS
+source venv/bin/activate
+```
+
+Passo 3: Instalar as dependências
+```bash
+pip install -r requirements.txt
+```
+Passo 4: Executar a interface gráfica
+```bash
+python lexical_gui.py
+```
+
+
 ### Executar um caso de teste específico
 
 ```bash
