@@ -37,51 +37,32 @@ class LexicalAnalyzerGUI(QMainWindow):
         input_widget = QWidget()
         input_layout = QVBoxLayout(input_widget)
         
-        # Source text input
-        definitions_line_layout = QHBoxLayout()
-        definitions_line_layout.addWidget(QLabel("Regular Definitions:"))
-
-        # Load button by its side
-        self.load_regex_btn = QPushButton("Load Definitions")
-        self.load_regex_btn.clicked.connect(self.load_regex_file)
-        definitions_line_layout.addStretch()  # Espaço entre o label e o botão
-        definitions_line_layout.addWidget(self.load_regex_btn)
-
-        input_layout.addLayout(definitions_line_layout)
-
-        # Placeholder text
+        # Regular definitions input
+        input_layout.addWidget(QLabel("Regular Definitions:"))
         self.regex_input = QTextEdit()
-        self.regex_input.setPlaceholderText(
-            "Enter regular definitions (one per line):\n"
-            "Example:\n"
-            "pr: if | else | while | for\n"
-            "id: [a-zA-Z]([a-zA-Z]|[0-9])*\n"
-            "num: [0-9]+"
-        )
+        self.regex_input.setPlaceholderText("Enter regular definitions (one per line):\nExample:\npr: if | else | while | for\nid: [a-zA-Z]([a-zA-Z]|[0-9])*\nnum: [0-9]+")
         input_layout.addWidget(self.regex_input)
-
+        
         # Source text input
-        source_line_layout = QHBoxLayout()
-        source_line_layout.addWidget(QLabel("Source Text:"))
-
-        # Load button by its side
-        self.load_source_btn = QPushButton("Load Source")
-        self.load_source_btn.clicked.connect(self.load_source_file)
-        source_line_layout.addStretch()
-        source_line_layout.addWidget(self.load_source_btn)
-
-        input_layout.addLayout(source_line_layout)
-
-        # Placeholder text
+        input_layout.addWidget(QLabel("Source Text:"))
         self.source_input = QTextEdit()
         self.source_input.setPlaceholderText("Enter source text to analyze")
         input_layout.addWidget(self.source_input)
-
+        
         # Buttons
         button_layout = QHBoxLayout()
         self.analyze_btn = QPushButton("Analyze")
         self.analyze_btn.clicked.connect(self.analyze_text)
-        button_layout.addWidget(self.analyze_btn)    
+        button_layout.addWidget(self.analyze_btn)
+        
+        self.load_regex_btn = QPushButton("Load Definitions")
+        self.load_regex_btn.clicked.connect(self.load_regex_file)
+        button_layout.addWidget(self.load_regex_btn)
+        
+        self.load_source_btn = QPushButton("Load Source")
+        self.load_source_btn.clicked.connect(self.load_source_file)
+        button_layout.addWidget(self.load_source_btn)
+        
         input_layout.addLayout(button_layout)
         
         # Add the input widget to the splitter
