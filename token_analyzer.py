@@ -20,6 +20,26 @@ class TokenAnalyzer:
             # Pular espaços em branco
             while position < len(text) and text[position].isspace():
                 position += 1
+
+            if position >= len(text):
+                break
+
+            # Verificar se é um comentário de linha
+            if position + 1 < len(text) and text[position:position+2] == "//":
+                # Encontrar o final do comentário de linha
+                end_of_line = text.find('\n', position)
+                if end_of_line == -1:
+                    end_of_line = len(text)
+
+                # Extrair o lexema do comentário e adicioná-lo como token    
+                # comment_lexeme = text[position:end_of_line]
+                # tokens.append(f"<{comment_lexeme}, comentario>")
+                position = end_of_line
+                continue
+
+            # Pular espaços em branco
+            while position < len(text) and text[position].isspace():
+                position += 1
             
             if position >= len(text):
                 break
