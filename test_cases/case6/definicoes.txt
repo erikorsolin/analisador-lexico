@@ -1,6 +1,0 @@
-id: [a-zA-Z][a-zA-Z0-9_]*
-pr: if|else|while|for|int|return
-num: [0-9]+
-ws: [ \t\n]+
-op: \+|\-|\*|\/|=|<|>|<=|>=|==|!=
-delim: \(|\)|\{|\}|;|,|\.|:
