@@ -176,6 +176,13 @@ class RegexToAFD:
         self.current_pos += 1  # Consumir o '['
         start_pos = self.current_pos
         
+        # Verificar se é uma classe negada
+        is_negated = False
+        if self.current_pos < len(self.regex_string) and self.regex_string[self.current_pos] == '^':
+            is_negated = True
+            self.current_pos += 1  # Consumir o '^'
+            start_pos = self.current_pos  # Ajustar a posição de início para ignorar o '^'
+        
         # Procurar o fechamento do grupo
         while self.current_pos < len(self.regex_string) and self.regex_string[self.current_pos] != ']':
             self.current_pos += 1
@@ -190,6 +197,7 @@ class RegexToAFD:
         # Processar o grupo para extrair caracteres
         chars = []
         i = 0
+        
         while i < len(group_content):
             if i + 2 < len(group_content) and group_content[i+1] == '-':
                 # Range de caracteres (e.g., a-z)
@@ -205,9 +213,24 @@ class RegexToAFD:
                 chars.append(group_content[i])
                 i += 1
         
+        # Se a classe for negada, precisamos implementar uma abordagem diferente
+        if is_negated:            
+            # Definir um conjunto base de caracteres ASCII visíveis
+            all_chars = set()
+            for c in range(32, 127):  # Caracteres ASCII imprimíveis
+                all_chars.add(chr(c))
+            
+            # Remover os caracteres especificados na classe negada
+            for char in chars:
+                if char in all_chars:
+                    all_chars.remove(char)
+            
+            # Substituir a lista de caracteres pela diferença
+            chars = list(all_chars)
+        
         # Construir um nó de alternância para cada caractere no grupo
         if not chars:
-            raise ValueError("Classe de caracteres vazia")
+            raise ValueError("Classe de caracteres vazia ou inválida")
         
         # Criar nó de símbolo para o primeiro caractere
         result = RegexNode('symbol', chars[0])
@@ -227,7 +250,7 @@ class RegexToAFD:
             
             alt_node.right = symbol_node
             result = alt_node
-        
+    
         return result
     
     def _calculate_sets(self, node):

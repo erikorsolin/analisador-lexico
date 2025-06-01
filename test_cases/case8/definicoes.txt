@@ -5,4 +5,4 @@ ASSIGN: =
 OP_ARITH: \+ | \-
 COLON: :
 SEMICOLON: ;
-QUOTES: "
+str: "[^"]*"
