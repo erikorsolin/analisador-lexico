@@ -1,0 +1,5 @@
+x = "Esta é uma string simples"
+y = "String com \"aspas\" escapadas"
+multiline = "String que
+continua em
+várias linhas"

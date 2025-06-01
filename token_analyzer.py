@@ -57,6 +57,32 @@ class TokenAnalyzer:
         
         pos = start_pos
         
+        # Verificar se estamos iniciando uma string (começa com aspas duplas)
+        is_string = pos < len(text) and text[pos] == '"'
+        
+        # Caso especial para strings - seguir até encontrar aspas de fechamento não escapadas
+        if is_string:
+            pos += 1  # Pular a aspas inicial
+            escaped = False
+            
+            while pos < len(text):
+                char = text[pos]
+                
+                if escaped:
+                    escaped = False
+                elif char == '\\':
+                    escaped = True
+                elif char == '"':
+                    # Aspas de fechamento não escapada - fim da string
+                    pos += 1  # Incluir a aspas de fechamento no token
+                    return (text[start_pos:pos], "str", pos - start_pos)
+                
+                pos += 1
+            
+            # Se chegou aqui, a string não foi fechada
+            return None
+        
+        # Processamento normal para tokens não-string
         while pos < len(text) and not text[pos].isspace():
             char = text[pos]
             
