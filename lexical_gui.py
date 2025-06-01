@@ -104,6 +104,15 @@ class LexicalAnalyzerGUI(QMainWindow):
         self.symbol_table_widget = QTableWidget()
         self.symbol_table_widget.setColumnCount(2)
         self.symbol_table_widget.setHorizontalHeaderLabels(["Lexeme", "Pattern"])
+        
+        # Make columns stretch to fill available space evenly
+        header = self.symbol_table_widget.horizontalHeader()
+        header.setSectionResizeMode(0, header.Stretch)
+        header.setSectionResizeMode(1, header.Stretch)
+        
+        # Remove grid lines for cleaner look (optional)
+        self.symbol_table_widget.setShowGrid(True)
+        
         symbol_table_layout.addWidget(self.symbol_table_widget)
         self.tabs.addTab(self.symbol_table_tab, "Symbol Table")
         
