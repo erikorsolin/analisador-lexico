@@ -1,6 +1,3 @@
-"""
-Arquivo principal para execução do analisador léxico.
-"""
 from lexical_analyzer import LexicalAnalyzer
 import sys
 import time

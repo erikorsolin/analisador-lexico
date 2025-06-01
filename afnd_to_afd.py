@@ -5,12 +5,8 @@ from automaton import Automaton
 from collections import deque
 
 def determinize(afnd):
-    """
-    Converte um AFND para um AFD usando o algoritmo de subconjuntos.
-    """
     print("Iniciando determinização...")
     
-    # Criar um novo autômato determinístico
     afd = Automaton()
     
     # Calcular o ε-fechamento do estado inicial

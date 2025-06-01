@@ -1,3 +1,0 @@
-print "Resultado:";
-val = 100;
-total = val - 10.5;

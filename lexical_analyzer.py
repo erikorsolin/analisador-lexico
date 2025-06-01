@@ -80,10 +80,6 @@ class LexicalAnalyzer:
         return automaton
     
     def combine_automata(self):
-        """
-        Combina todos os autômatos via ε-transições.
-        Isso converte os AFDs individuais em um AFND combinado.
-        """
         if not self.automata:
             print("Nenhum autômato para combinar.")
             return None
@@ -138,7 +134,6 @@ class LexicalAnalyzer:
         return combined
     
     def generate_lexical_analyzer(self):
-        """Gera o analisador léxico a partir dos autômatos combinados e determinizados."""
         if not self.combined_automaton:
             self.combine_automata()
         
@@ -155,7 +150,6 @@ class LexicalAnalyzer:
         return True
     
     def analyze_file(self, input_filename, output_filename=None):
-        """Analisa um arquivo de entrada e gera os tokens."""
         if not self.token_analyzer:
             print("Analisador léxico não foi gerado. Execute generate_lexical_analyzer primeiro.")
             return False
@@ -180,7 +174,6 @@ class LexicalAnalyzer:
             return []
     
     def print_automaton(self, automaton, title="Autômato"):
-        """Imprime um autômato na forma de tabela."""
         print(f"\n{title}:")
         print(f"Número de estados: {len(automaton.states)}")
         print(f"Estado inicial: {automaton.initial_state}")
@@ -196,7 +189,6 @@ class LexicalAnalyzer:
         
 
     def save_automaton_to_file(self, automaton, filename):
-        """Salva um autômato em um arquivo no formato especificado dentro da pasta AFs/."""
         # Garantir que o diretório AFs/ exista
         directory = "AFs"
         if not os.path.exists(directory):

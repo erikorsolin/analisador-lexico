@@ -3,9 +3,6 @@ Implementação do analisador de tokens que usa o AFD para reconhecer tokens no 
 """
 class TokenAnalyzer:
     def __init__(self, automaton, symbol_table):
-        """
-        Inicializa o analisador de tokens com um autômato e uma tabela de símbolos.
-        """
         self.automaton = automaton
         self.symbol_table = symbol_table
     
@@ -76,9 +73,17 @@ class TokenAnalyzer:
         max_final_pattern = None
         
         pos = start_pos
+        in_string = text[start_pos] == '"' if start_pos < len(text) else False
         
-        while pos < len(text) and not text[pos].isspace():
+        while pos < len(text):
             char = text[pos]
+            
+            if char.isspace() and not in_string:
+                break
+                
+            if char == '"' and (pos == start_pos or text[pos-1] != '\\'):
+                if pos > start_pos:  # Não alternar no primeiro caractere
+                    in_string = not in_string
             
             # Verificar se há transição para este caractere
             next_state = None

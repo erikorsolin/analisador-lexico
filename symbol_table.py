@@ -3,7 +3,6 @@ Implementação da Tabela de Símbolos para armazenar informações sobre os tok
 """
 class SymbolTable:
     def __init__(self):
-        """Inicializa a tabela de símbolos vazia."""
         self.symbols = {}
         self.reserved_words = set()
     

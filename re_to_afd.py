@@ -1,6 +1,5 @@
 """
 Implementação da conversão direta de Expressão Regular para Autômato Finito Determinístico
-usando o algoritmo Follow-Pos (método de construção de Berry-Sethi/Glushkov).
 """
 from automaton import Automaton
 from collections import defaultdict
@@ -8,15 +7,15 @@ from collections import defaultdict
 class RegexNode:
     """Classe que representa um nó na árvore sintática da expressão regular."""
     def __init__(self, type, value=None):
-        self.type = type            # Tipo do nó: 'concat', 'alt', 'star', 'plus', 'opt', 'symbol'
-        self.value = value          # Valor do nó (apenas para símbolos)
-        self.left = None            # Filho esquerdo
-        self.right = None           # Filho direito
-        self.position = None        # Posição única do nó (apenas para símbolos)
-        self.nullable = False       # True se o nó pode gerar a string vazia
-        self.firstpos = set()       # Conjunto de posições que podem iniciar a string
-        self.lastpos = set()        # Conjunto de posições que podem terminar a string
-        self.followpos = None       # Não usado no nó, mas definido para clareza
+        self.type = type            
+        self.value = value       
+        self.left = None          
+        self.right = None          
+        self.position = None      
+        self.nullable = False      
+        self.firstpos = set()    
+        self.lastpos = set()      
+        self.followpos = None       
 
 class RegexToAFD:
     def __init__(self):
@@ -213,7 +212,6 @@ class RegexToAFD:
                 chars.append(group_content[i])
                 i += 1
         
-        # Se a classe for negada, precisamos implementar uma abordagem diferente
         if is_negated:            
             # Definir um conjunto base de caracteres ASCII visíveis
             all_chars = set()
@@ -320,7 +318,6 @@ class RegexToAFD:
             return
         
         if node.type == 'concat':
-            # Para cada posição em lastpos(esquerda), adicione firstpos(direita) ao seu followpos
             for pos in node.left.lastpos:
                 self.followpos[pos].update(node.right.firstpos)
             
@@ -329,7 +326,6 @@ class RegexToAFD:
             self._calculate_followpos(node.right)
         
         elif node.type in ('star', 'plus'):
-            # Para cada posição em lastpos(n), adicione firstpos(n) ao seu followpos
             for pos in node.lastpos:
                 self.followpos[pos].update(node.firstpos)
             

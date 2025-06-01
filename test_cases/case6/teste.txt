@@ -1,0 +1,4 @@
+print "Resultado do calculo:";
+val = 100;
+print "Valor inicial:" + val;
+total = val - 10.5;

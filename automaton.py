@@ -13,34 +13,28 @@ class Automaton:
         self.pattern = None          # Padrão associado ao autômato
     
     def add_state(self, state):
-        """Adiciona um estado ao autômato."""
         self.states.add(state)
     
     def add_symbol(self, symbol):
-        """Adiciona um símbolo ao alfabeto."""
         self.alphabet.add(symbol)
     
     def add_transition(self, from_state, symbol, to_state):
-        """Adiciona uma transição ao autômato."""
         self.add_state(from_state)
         self.add_state(to_state)
         self.add_symbol(symbol)
         self.transitions[from_state][symbol].add(to_state)
     
     def set_initial_state(self, state):
-        """Define o estado inicial."""
         self.add_state(state)
         self.initial_state = state
     
     def add_final_state(self, state):
-        """Adiciona um estado final."""
         self.add_state(state)
         self.final_states.add(state)
     
     def get_epsilon_closure(self, state_or_states):
         """
-        Retorna o ε-fechamento de um estado ou conjunto de estados.
-        O ε-fechamento inclui todos os estados alcançáveis por transições ε.
+        Retorna o ε-fecho de um estado ou conjunto de estados.
         """
         if isinstance(state_or_states, (int, str)):
             states = {state_or_states}
@@ -70,7 +64,6 @@ class Automaton:
         return result
     
     def __str__(self):
-        """Representação em string do autômato."""
         result = []
         result.append(f"Estados: {self.states}")
         result.append(f"Alfabeto: {self.alphabet}")
