@@ -1,0 +1,5 @@
+função ação = número_ç + variávelÉ - variávelá;
+enquanto (ação >= número_ç) {
+    variávelÉ = variávelá + 1;
+    retornar;
+}
