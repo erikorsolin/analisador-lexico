@@ -1,0 +1,5 @@
+id: [a-zA-Z][a-zA-Z0-9]*
+op: \+ | \- | \* | \/ | =
+delim: ; | \( | \)
+reserved: if | then | else | while | do
+num: [0-9]+

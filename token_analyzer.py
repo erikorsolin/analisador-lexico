@@ -5,12 +5,17 @@ class TokenAnalyzer:
     def __init__(self, automaton, symbol_table):
         self.automaton = automaton
         self.symbol_table = symbol_table
+        self.last_tokens = []  # Store the last tokens generated
     
     def analyze(self, text):
         """
-        Analisa o texto e retorna a lista de tokens no formato <lexema, padrão>.
+        Analisa o texto e retorna a lista de tokens no formato apropriado para análise sintática:
+        - Identificadores: <id, índice>
+        - Palavras reservadas: <lexema, PR>
+        - Outros tokens: <lexema, padrão>
         """
         tokens = []
+        self.last_tokens = []  # Reset the last tokens
         position = 0
         
         while position < len(text):
@@ -28,9 +33,6 @@ class TokenAnalyzer:
                 if end_of_line == -1:
                     end_of_line = len(text)
 
-                # Extrair o lexema do comentário e adicioná-lo como token    
-                # comment_lexeme = text[position:end_of_line]
-                # tokens.append(f"<{comment_lexeme}, comentario>")
                 position = end_of_line
                 continue
 
@@ -47,13 +49,19 @@ class TokenAnalyzer:
             if token:
                 lexeme, pattern, length = token
                 
-                # Atualizar a tabela de símbolos
-                self.symbol_table.add_symbol(lexeme, pattern)
+                # Atualizar a tabela de símbolos e obter o formato adequado do token
+                is_new, token_value = self.symbol_table.add_symbol(lexeme, pattern)
                 
-                # Verificar se o lexema é uma palavra reservada
-                final_pattern = self.symbol_table.get_pattern(lexeme)
+                if pattern == "id":
+                    # Para identificadores, usamos o formato <id, índice>
+                    tokens.append(f"<id, {token_value}>")
+                elif lexeme in self.symbol_table.reserved_words:
+                    # Para palavras reservadas, usamos o formato <lexema, PR>
+                    tokens.append(f"<{lexeme}, PR>")
+                else:
+                    # Para outros tokens, usamos o formato <lexema, padrão>
+                    tokens.append(f"<{lexeme}, {pattern}>")
                 
-                tokens.append(f"<{lexeme}, {final_pattern}>")
                 position += length
             else:
                 # Caractere não reconhecido
@@ -61,6 +69,8 @@ class TokenAnalyzer:
                 tokens.append(f"<{error_lexeme}, erro!>")
                 position += 1
         
+        # Store the tokens before returning
+        self.last_tokens = tokens.copy()
         return tokens
     
     def _get_next_token(self, text, start_pos):

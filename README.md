@@ -1,7 +1,12 @@
-# Analisador Léxico - Framework
+# Framework de Análise Léxica e Sintática SLR
 
 ## Descrição
-Este projeto implementa um framework para a geração de analisadores léxicos baseados em expressões regulares. O sistema segue um fluxo específico para processar expressões regulares e gerar tokens.
+Este projeto implementa um framework completo para a geração de analisadores léxicos baseados em expressões regulares e analisadores sintáticos do tipo SLR (Simple LR). O sistema é dividido em duas interfaces principais:
+
+1. **Interface de Projeto**: Gera as tabelas de análise sintática a partir de uma gramática.
+2. **Interface de Execução**: Analisa sentenças utilizando as tabelas geradas.
+
+O framework integra o analisador léxico e sintático, permitindo que sejam usados em conjunto ou separadamente.
 
 
 ## Instruções de Uso
@@ -97,6 +102,66 @@ Este comando remove todos os arquivos temporários gerados pelo analisador léxi
 ### Formato de Definições
 
 O arquivo de definições deve conter uma expressão regular por linha, no formato:
+
+## Analisador Sintático SLR
+
+O analisador sintático SLR complementa o analisador léxico, permitindo a verificação da estrutura sintática do código de acordo com uma gramática especificada.
+
+### Uso do Analisador Sintático
+
+O analisador sintático possui três modos de operação, acessíveis através do arquivo `syntax_cli.py`:
+
+#### 1. Gerar tabelas de análise sintática
+
+```bash
+python syntax_cli.py gerar <arquivo_gramatica> [-o <arquivo_saida>]
+```
+
+Exemplo:
+```bash
+python syntax_cli.py gerar gramaticas/expressoes.txt -o tabelas/expressoes_parser.json
+```
+
+#### 2. Executar apenas a análise léxica
+
+```bash
+python syntax_cli.py lexico <arquivo_definicoes> <arquivo_entrada> [-o <arquivo_saida>]
+```
+
+Exemplo:
+```bash
+python syntax_cli.py lexico test_cases/case1/definicoes.txt test_cases/case1/teste.txt -o tokens.txt
+```
+
+#### 3. Executar análise léxica e sintática
+
+```bash
+python syntax_cli.py sintatico <arquivo_definicoes> <arquivo_entrada> <arquivo_parser> [-o <arquivo_saida>] [-d]
+```
+
+Exemplo:
+```bash
+python syntax_cli.py sintatico test_cases/case1/definicoes.txt test_cases/case1/teste.txt tabelas/expressoes_parser.json -d
+```
+
+O parâmetro `-d` ativa o modo de depuração, mostrando os passos da análise sintática.
+
+### Formato do Arquivo de Gramática
+
+O arquivo de gramática deve conter uma produção por linha, no formato:
+
+```
+<não-terminal> ::= <corpo da produção>
+```
+
+Exemplo:
+```
+E ::= E + T | T
+T ::= T * F | F
+F ::= ( E ) | id
+```
+
+O sistema irá automaticamente aumentar a gramática com uma nova produção inicial S' → S.
 
 ```
 nome_padrao: expressao_regular

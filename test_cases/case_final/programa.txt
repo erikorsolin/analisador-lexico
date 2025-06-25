@@ -1,0 +1,6 @@
+while x < 10 do
+    x = x + 1;
+    if x == 5 then
+        y = 100
+    else
+        y = 200

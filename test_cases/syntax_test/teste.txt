@@ -1,0 +1,6 @@
+if num + 10 then
+    x = y + 5;
+    while z do 
+        a = b
+else 
+    c = d

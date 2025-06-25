@@ -1,0 +1,14 @@
+// Palavras reservadas
+while if for else int float
+
+// Identificadores
+x y contador soma1 valor_final
+
+// Números
+0 123 456789
+
+// Operadores
++ - * / = < > <= >= ==
+
+// Delimitadores
+( ) { } ; ,

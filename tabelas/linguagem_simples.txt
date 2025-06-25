@@ -1,0 +1,5 @@
+P ::= S
+S ::= S ; S | if E then S else S | while E do S | id = E
+E ::= E + T | E - T | T
+T ::= T * F | T / F | F
+F ::= ( E ) | id | num
