@@ -610,7 +610,7 @@ class SyntaxAnalyzerGUI(QMainWindow):
                     row = i + 1  # +1 to account for header row
                     state_key = str(state)
                     state_actions = action_table.get(state_key, {})
-                    state_gotos = goto_table.get(state_key, {})
+                    state_gotos = goto_table.get(state_key, {});
                     
                     # Debug
                     print(f"Processing state {state_key}: {len(state_actions)} actions, {len(state_gotos)} gotos")
@@ -713,22 +713,20 @@ class SyntaxAnalyzerGUI(QMainWindow):
             source_file_name = source_file.name
             
         # Get current parser tables file
-        if not hasattr(self, 'current_grammar_name') or not self.current_grammar_name:
-            QMessageBox.critical(self, "Error", "No grammar selected. Please select or load a grammar first.")
-            # Clean up temporary files
-            os.unlink(regex_file_name)
-            os.unlink(source_file_name)
-            return
+        parser_file = None
+        if hasattr(self, 'current_grammar_name') and self.current_grammar_name:
+            base_name = os.path.splitext(self.current_grammar_name)[0]
+            parser_file = os.path.join('tabelas', f"{base_name}_parser.json")
+        else:
+            warning = "No grammar selected. Only lexical analysis will be performed (no syntax analysis)."
+            QMessageBox.warning(self, "Warning", warning)
             
-        base_name = os.path.splitext(self.current_grammar_name)[0]
-        parser_file = os.path.join('tabelas', f"{base_name}_parser.json")
-        
-        if not os.path.exists(parser_file):
-            QMessageBox.critical(self, "Error", f"Parser tables file '{parser_file}' not found. Generate parser tables first.")
-            # Clean up temporary files
-            os.unlink(regex_file_name)
-            os.unlink(source_file_name)
-            return
+        # Check if parser tables exist
+        if parser_file and not os.path.exists(parser_file):
+            warning = (f"Parser tables file '{parser_file}' not found. Only lexical analysis will be performed.\n\n"
+                      f"Please generate parser tables first by clicking 'Generate Parser' button.")
+            QMessageBox.warning(self, "Warning", warning)
+            parser_file = None
             
         # Set debug mode
         debug = (self.debug_combo.currentText() == "On")
@@ -791,7 +789,11 @@ class SyntaxAnalyzerGUI(QMainWindow):
                     self.tokens_output.setText("\n".join(tokens))
                 
         # Display parse result
-        if self.parse_result:
+        if not parser_file:
+            self.parse_output.setText("Only lexical analysis was performed! No parser tables were provided.\n\n" +
+                                      "Generate parser tables using the 'Generate Parser' button to perform syntax analysis.")
+            self.parse_output.setStyleSheet("color: #FF8C00; font-weight: bold;") # Dark orange color
+        elif self.parse_result:
             self.parse_output.setText("Syntax analysis completed successfully!")
             self.parse_output.setStyleSheet("color: green; font-weight: bold;")
         else:
@@ -826,8 +828,17 @@ class SyntaxAnalyzerGUI(QMainWindow):
         self.steps_table.clearContents()
         self.steps_table.setRowCount(0)
         
+        # Check if parser tables were even used
+        if "Nenhum arquivo de tabelas do analisador sintático foi especificado" in output or not debug_mode:
+            # Show message in the parse steps table
+            self.steps_table.setRowCount(1)
+            self.steps_table.setItem(0, 0, QTableWidgetItem("No parser tables provided"))
+            self.steps_table.setItem(0, 1, QTableWidgetItem("Only lexical analysis was performed"))
+            self.steps_table.setItem(0, 2, QTableWidgetItem("Generate parser tables first"))
+            return
+            
         # First check if we're in non-debug mode and need to generate our own steps
-        if not debug_mode or "Início da análise sintática:" not in output:
+        if "Início da análise sintática:" not in output:
             # In non-debug mode, or if no debug info was generated,
             # we'll create our own parsing steps for display
             self.generate_parse_steps_from_tokens()
@@ -1055,7 +1066,7 @@ class SyntaxAnalyzerGUI(QMainWindow):
             # Get FIRST and FOLLOW sets from the analyzer
             sets = self.analyzer.get_first_follow_sets()
             first_sets = sets.get('first', {})
-            follow_sets = sets.get('follow', {})
+            follow_sets = sets.get('follow', {});
             
             print(f"Got {len(first_sets)} FIRST sets and {len(follow_sets)} FOLLOW sets")
             

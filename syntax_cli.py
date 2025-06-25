@@ -49,6 +49,7 @@ def main():
         # Executar apenas a análise léxica
         print("Modo de Análise Léxica")
         print("=" * 50)
+        print("Executando apenas a análise léxica (sem análise sintática)")
         result = analyzer.analyze_file(args.regex_file, args.input_file, args.output)
         sys.exit(0 if result else 1)
         

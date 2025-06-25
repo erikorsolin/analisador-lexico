@@ -84,6 +84,8 @@ class SyntaxAnalyzer:
         # Se não for especificado um arquivo de tabelas, apenas retornar após a análise léxica
         if not parser_tables_file:
             print("Análise léxica concluída com sucesso.")
+            print("\033[1;33mAVISO: Nenhum arquivo de tabelas do analisador sintático foi especificado. A análise sintática não será realizada.\033[0m")
+            print("Use o comando 'gerar' para criar as tabelas do analisador sintático antes de executar a análise sintática.")
             return True
         
         # Fase 2: Análise sintática

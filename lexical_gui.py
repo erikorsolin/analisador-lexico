@@ -286,9 +286,18 @@ class LexicalAnalyzerGUI(QMainWindow):
         self.symbol_table_widget.setAlternatingRowColors(True)
         
         # Fill the table
-        for row, (lexeme, pattern) in enumerate(sorted(symbols.items())):
+        for row, (lexeme, pattern_value) in enumerate(sorted(symbols.items())):
             lexeme_item = QTableWidgetItem(lexeme)
-            pattern_item = QTableWidgetItem(pattern)
+            
+            # Handle pattern which can be a string or tuple
+            if isinstance(pattern_value, tuple):
+                pattern_str = f"{pattern_value[0]} (idx: {pattern_value[1]})"
+                pattern = pattern_value[0]  # Extract the actual pattern from tuple
+            else:
+                pattern_str = str(pattern_value)
+                pattern = pattern_value
+                
+            pattern_item = QTableWidgetItem(pattern_str)
             
             # Check if this is a reserved word (pattern is "PR")
             if pattern == "PR":
