@@ -299,7 +299,12 @@ class Grammar:
         self.follow_sets = {nt: set() for nt in self.nonterminals}
         
         # Rule 1: Place $ in FOLLOW(S), where S is the start symbol
+        # For augmented grammar, add $ to both original start and augmented start
         self.follow_sets[self.start_symbol].add('$')
+        
+        # If this is an augmented grammar, $ should be in FOLLOW of the augmented start symbol
+        if self.augmented and self.augmented_start:
+            self.follow_sets[self.augmented_start].add('$')
         
         # Apply FOLLOW set rules until no more changes
         changed = True

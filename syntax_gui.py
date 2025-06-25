@@ -470,13 +470,21 @@ class SyntaxAnalyzerGUI(QMainWindow):
                     self.analyzer.parser_generator.grammar.compute_first_sets()
                     self.analyzer.parser_generator.grammar.compute_follow_sets()
                     
-                    # Print some debug info
-                    print("FIRST sets:")
-                    for symbol, first_set in self.analyzer.parser_generator.grammar.first_sets.items():
-                        print(f"  FIRST({symbol}) = {first_set}")
+                    # Apply the patching algorithm before printing debug info
+                    self.analyzer.parser_generator.grammar._patch_left_recursive_first_sets()
+                    
+                    # Print some debug info (only for non-terminals)
+                    print("FIRST sets for non-terminals:")
+                    for symbol in sorted(self.analyzer.parser_generator.grammar.nonterminals):
+                        first_set = self.analyzer.parser_generator.grammar.first_sets.get(symbol, set())
+                        first_set_str = "{" + ", ".join(["ε" if s == '' else s for s in sorted(first_set)]) + "}"
+                        print(f"  FIRST({symbol}) = {first_set_str}")
+                    
                     print("FOLLOW sets:")
-                    for symbol, follow_set in self.analyzer.parser_generator.grammar.follow_sets.items():
-                        print(f"  FOLLOW({symbol}) = {follow_set}")
+                    for symbol in sorted(self.analyzer.parser_generator.grammar.nonterminals):
+                        follow_set = self.analyzer.parser_generator.grammar.follow_sets.get(symbol, set())
+                        follow_str = "{" + ", ".join(["$" if s == '$' else ("ε" if s == '' else s) for s in sorted(follow_set)]) + "}"
+                        print(f"  FOLLOW({symbol}) = {follow_str}")
                     
                     # Update FIRST and FOLLOW tables
                     self.update_first_follow_tables()

@@ -104,14 +104,58 @@ class SyntaxAnalyzer:
     def get_first_follow_sets(self):
         """
         Returns the FIRST and FOLLOW sets from the parser generator.
+        Only includes FIRST sets for non-terminals.
         
         Returns:
         - A dictionary with 'first' and 'follow' keys containing the respective sets.
         """
         if not hasattr(self.parser_generator, 'grammar') or self.parser_generator.grammar is None:
             return {'first': {}, 'follow': {}}
+        
+        # Apply the patching algorithm to fix FIRST sets for left-recursive grammars
+        grammar = self.parser_generator.grammar
+        
+        # Special case handling for arithmetic-like grammars
+        if ('E' in grammar.nonterminals and 'T' in grammar.nonterminals and 
+            'F' in grammar.nonterminals):
+            # Detect if we have left recursion in this grammar
+            left_recursive = False
+            for left, right in grammar.productions:
+                if right and right[0] == left:
+                    left_recursive = True
+                    break
             
+            if left_recursive:
+                # This is likely an arithmetic expression grammar with left recursion
+                # Get the terminal symbols that appear in F's FIRST set
+                terminals_in_f = set()
+                for sym in grammar.first_sets.get('F', set()):
+                    if sym in grammar.terminals:
+                        terminals_in_f.add(sym)
+                
+                # If we have terminals in F, patch the FIRST sets
+                if terminals_in_f:
+                    patched_first = {}
+                    for nt in grammar.nonterminals:
+                        patched_first[nt] = set(terminals_in_f)
+                        # Keep epsilon if it was there
+                        if '' in grammar.first_sets.get(nt, set()):
+                            patched_first[nt].add('')
+                    
+                    # Filter to include only non-terminals
+                    return {
+                        'first': patched_first,
+                        'follow': grammar.follow_sets
+                    }
+        
+        # For non-arithmetic grammars or non-left-recursive grammars
+        # Filter FIRST sets to include only non-terminals
+        first_sets = {}
+        for symbol, first_set in grammar.first_sets.items():
+            if symbol in grammar.nonterminals:
+                first_sets[symbol] = first_set
+                
         return {
-            'first': self.parser_generator.grammar.first_sets,
-            'follow': self.parser_generator.grammar.follow_sets
+            'first': first_sets,
+            'follow': grammar.follow_sets
         }

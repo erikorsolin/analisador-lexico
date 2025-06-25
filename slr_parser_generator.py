@@ -326,6 +326,9 @@ class SLRParser:
         # Print FIRST and FOLLOW sets using the grammar's pretty print method
         self.grammar.print_first_follow_sets()
         
+        # Apply the patching algorithm for left-recursive grammars for detailed outputs
+        self.grammar._patch_left_recursive_first_sets()
+        
         # Imprimir tabela no formato LR
         print("\nLR table")
         print("State\tACTION\tGOTO")
