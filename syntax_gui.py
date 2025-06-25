@@ -457,21 +457,37 @@ class SyntaxAnalyzerGUI(QMainWindow):
                 if os.path.exists(possible_grammar):
                     grammar_path = possible_grammar
             
+            print(f"Looking for grammar file for FIRST/FOLLOW computation: {grammar_path}")
             if grammar_path:
                 # Load the grammar to compute FIRST and FOLLOW sets
+                print(f"Loading grammar from {grammar_path} for FIRST/FOLLOW sets...")
                 self.analyzer.parser_generator.load_grammar(grammar_path)
                 if hasattr(self.analyzer.parser_generator, 'grammar'):
                     # Compute FIRST and FOLLOW sets
+                    print("Computing FIRST and FOLLOW sets...")
                     self.analyzer.parser_generator.grammar.augment()
                     self.analyzer.parser_generator.grammar.compute_nullable()
                     self.analyzer.parser_generator.grammar.compute_first_sets()
                     self.analyzer.parser_generator.grammar.compute_follow_sets()
                     
+                    # Print some debug info
+                    print("FIRST sets:")
+                    for symbol, first_set in self.analyzer.parser_generator.grammar.first_sets.items():
+                        print(f"  FIRST({symbol}) = {first_set}")
+                    print("FOLLOW sets:")
+                    for symbol, follow_set in self.analyzer.parser_generator.grammar.follow_sets.items():
+                        print(f"  FOLLOW({symbol}) = {follow_set}")
+                    
                     # Update FIRST and FOLLOW tables
                     self.update_first_follow_tables()
+            else:
+                print("No grammar file found for computing FIRST/FOLLOW sets")
             
             return True
         except Exception as e:
+            print(f"Error in load_parser: {str(e)}")
+            import traceback
+            traceback.print_exc()
             QMessageBox.critical(self, "Error", f"Error loading parser tables: {str(e)}")
             return False
             
