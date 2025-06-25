@@ -100,3 +100,18 @@ class SyntaxAnalyzer:
             print("Erro na análise sintática.")
         
         return success
+    
+    def get_first_follow_sets(self):
+        """
+        Returns the FIRST and FOLLOW sets from the parser generator.
+        
+        Returns:
+        - A dictionary with 'first' and 'follow' keys containing the respective sets.
+        """
+        if not hasattr(self.parser_generator, 'grammar') or self.parser_generator.grammar is None:
+            return {'first': {}, 'follow': {}}
+            
+        return {
+            'first': self.parser_generator.grammar.first_sets,
+            'follow': self.parser_generator.grammar.follow_sets
+        }

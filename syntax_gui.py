@@ -26,6 +26,10 @@ class SyntaxAnalyzerGUI(QMainWindow):
         self.current_grammar_path = ""
         self.current_grammar_name = ""
         
+        # These attributes are needed for the update_parser_tables method
+        self.action_table = None
+        self.goto_table = None
+        
         # Find grammar files
         self.update_grammar_list()
 
@@ -194,29 +198,62 @@ class SyntaxAnalyzerGUI(QMainWindow):
         self.tables_tab = QWidget()
         tables_layout = QVBoxLayout(self.tables_tab)
         
-        # Create horizontal layout for side-by-side tables
-        tables_horizontal_layout = QHBoxLayout()
+        # Add a title label
+        tables_layout.addWidget(QLabel("LR Table (Combined ACTION and GOTO):"))
         
-        # Action table
-        action_widget = QWidget()
-        action_layout = QVBoxLayout(action_widget)
-        action_layout.addWidget(QLabel("ACTION Table:"))
-        self.action_table = QTableWidget()
-        action_layout.addWidget(self.action_table)
-        tables_horizontal_layout.addWidget(action_widget)
+        # Create a single combined table for both ACTION and GOTO
+        self.lr_table = QTableWidget()
+        self.lr_table.setShowGrid(True)
+        tables_layout.addWidget(self.lr_table)
         
-        # Goto table
-        goto_widget = QWidget()
-        goto_layout = QVBoxLayout(goto_widget)
-        goto_layout.addWidget(QLabel("GOTO Table:"))
-        self.goto_table = QTableWidget()
-        goto_layout.addWidget(self.goto_table)
-        tables_horizontal_layout.addWidget(goto_widget)
+        self.tabs.addTab(self.tables_tab, "LR Table")
         
-        # Add horizontal layout to main layout
-        tables_layout.addLayout(tables_horizontal_layout)
+        # Tab for FIRST and FOLLOW sets
+        self.first_follow_tab = QWidget()
+        first_follow_layout = QVBoxLayout(self.first_follow_tab)
         
-        self.tabs.addTab(self.tables_tab, "Parser Tables")
+        # Create a splitter for FIRST and FOLLOW tables
+        sets_splitter = QSplitter(Qt.Vertical)
+        
+        # FIRST sets section
+        first_group = QWidget()
+        first_layout = QVBoxLayout(first_group)
+        first_layout.addWidget(QLabel("FIRST Sets:"))
+        self.first_table = QTableWidget()
+        self.first_table.setColumnCount(2)
+        self.first_table.setHorizontalHeaderLabels(["Symbol", "FIRST Set"])
+        
+        # Configure table appearance
+        header = self.first_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        self.first_table.setShowGrid(True)
+        self.first_table.setAlternatingRowColors(True)
+        
+        first_layout.addWidget(self.first_table)
+        sets_splitter.addWidget(first_group)
+        
+        # FOLLOW sets section
+        follow_group = QWidget()
+        follow_layout = QVBoxLayout(follow_group)
+        follow_layout.addWidget(QLabel("FOLLOW Sets:"))
+        self.follow_table = QTableWidget()
+        self.follow_table.setColumnCount(2)
+        self.follow_table.setHorizontalHeaderLabels(["Non-terminal", "FOLLOW Set"])
+        
+        # Configure table appearance
+        header = self.follow_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        self.follow_table.setShowGrid(True)
+        self.follow_table.setAlternatingRowColors(True)
+        
+        follow_layout.addWidget(self.follow_table)
+        sets_splitter.addWidget(follow_group)
+        
+        # Add the splitter to the layout
+        first_follow_layout.addWidget(sets_splitter)
+        self.tabs.addTab(self.first_follow_tab, "FIRST/FOLLOW Sets")
         
         # Add the tabs to the splitter
         splitter.addWidget(self.tabs)
@@ -389,6 +426,12 @@ class SyntaxAnalyzerGUI(QMainWindow):
         if success:
             QMessageBox.information(self, "Success", f"Parser tables generated and saved to '{output_file}'")
             self.load_parser(output_file)
+            
+            # Update FIRST and FOLLOW tables
+            self.update_first_follow_tables()
+            
+            # Switch to the FIRST/FOLLOW tab to show the results
+            self.tabs.setCurrentIndex(self.tabs.indexOf(self.first_follow_tab))
         else:
             QMessageBox.critical(self, "Error", "Failed to generate parser tables. Check the console for details.")
 
@@ -403,6 +446,30 @@ class SyntaxAnalyzerGUI(QMainWindow):
             # Update the UI with parser tables
             self.update_parser_tables()
             
+            # We need to reload the grammar to compute FIRST and FOLLOW sets
+            # This is required because the parser doesn't have FIRST/FOLLOW sets directly
+            # Extract grammar file path from the parser file path if possible
+            grammar_path = None
+            base_name = os.path.splitext(os.path.basename(parser_file))[0]
+            if base_name.endswith("_parser"):
+                gram_name = base_name[:-7]  # Remove "_parser" suffix
+                possible_grammar = os.path.join("gramaticas", f"{gram_name}.txt")
+                if os.path.exists(possible_grammar):
+                    grammar_path = possible_grammar
+            
+            if grammar_path:
+                # Load the grammar to compute FIRST and FOLLOW sets
+                self.analyzer.parser_generator.load_grammar(grammar_path)
+                if hasattr(self.analyzer.parser_generator, 'grammar'):
+                    # Compute FIRST and FOLLOW sets
+                    self.analyzer.parser_generator.grammar.augment()
+                    self.analyzer.parser_generator.grammar.compute_nullable()
+                    self.analyzer.parser_generator.grammar.compute_first_sets()
+                    self.analyzer.parser_generator.grammar.compute_follow_sets()
+                    
+                    # Update FIRST and FOLLOW tables
+                    self.update_first_follow_tables()
+            
             return True
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error loading parser tables: {str(e)}")
@@ -410,79 +477,187 @@ class SyntaxAnalyzerGUI(QMainWindow):
             
     def update_parser_tables(self):
         """Update the UI with the current parser tables"""
-        if not self.parser_tables:
-            return
+        try:
+            if not self.parser_tables:
+                print("No parser tables loaded")
+                return
+                
+            print("Updating parser tables in UI")
+            # Debug: Print what we have in the parser tables
+            print(f"ACTION table keys: {self.parser_tables.get('action', {}).keys()}")
+            print(f"GOTO table keys: {self.parser_tables.get('goto', {}).keys()}")
+            print(f"Terminals: {self.parser_tables.get('terminals', [])}")
+            print(f"Nonterminals: {self.parser_tables.get('nonterminals', [])}")
+                
+            # Get tables data
+            action_table = self.parser_tables.get('action', {})
+            goto_table = self.parser_tables.get('goto', {})
             
-        # Update ACTION table
-        action_table = self.parser_tables.get('action', {})
-        terminals = sorted(self.parser_tables.get('terminals', [])) + ['$']
-        states = sorted(map(int, action_table.keys()))
-        
-        self.action_table.setRowCount(len(states))
-        self.action_table.setColumnCount(len(terminals))
-        self.action_table.setHorizontalHeaderLabels(terminals)
-        self.action_table.setVerticalHeaderLabels([str(state) for state in states])
-        
-        # Set sizing policy for ACTION table
-        self.action_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.action_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        
-        for row, state in enumerate(states):
-            state_actions = action_table.get(str(state), {})
-            for col, terminal in enumerate(terminals):
-                if terminal in state_actions:
-                    action = state_actions[terminal]
-                    action_type, action_value = action
-                    
-                    if action_type == 'shift':
-                        text = f"s{action_value}"
-                    elif action_type == 'reduce':
-                        text = f"r{action_value}"
-                    elif action_type == 'accept':
-                        text = "acc"
+            # Get grammar symbols (with filtering to avoid duplicates)
+            raw_terminals = self.parser_tables.get('terminals', [])
+            raw_nonterminals = self.parser_tables.get('nonterminals', [])
+            
+            # Filter out any symbols that appear in both lists - they should only be nonterminals
+            # Some JSON files might have inconsistencies in how terminals and nonterminals are categorized
+            # This is a workaround until the parser generator is fixed
+            terminals = []
+            corrected_action_table = {}
+            
+            # Create a deep copy of the action table that we can modify
+            for state, actions in action_table.items():
+                corrected_action_table[state] = {}
+                for symbol, action in actions.items():
+                    if symbol not in raw_nonterminals:
+                        corrected_action_table[state][symbol] = action
                     else:
-                        text = str(action)
-                        
-                    item = QTableWidgetItem(text)
-                    
-                    # Highlight different actions
-                    if action_type == 'shift':
-                        item.setBackground(QColor("#d4edda"))  # Light green for shifts
-                    elif action_type == 'reduce':
-                        item.setBackground(QColor("#fff3cd"))  # Light yellow for reduces
-                    elif action_type == 'accept':
-                        item.setBackground(QColor("#cce5ff"))  # Light blue for accept
-                        
-                    self.action_table.setItem(row, col, item)
+                        print(f"WARNING: Symbol '{symbol}' found in both terminals and nonterminals lists, treating as nonterminal")
+                        # This entry will be moved to the GOTO table
+            
+            # Update our action table reference
+            action_table = corrected_action_table
+            
+            # Only include true terminals in our terminals list
+            for t in raw_terminals:
+                if t not in raw_nonterminals:
+                    terminals.append(t)
+            
+            # Sort and add end marker
+            terminals = sorted(terminals) + ['$']
+            nonterminals = sorted(raw_nonterminals)
+            
+            # Check if we have valid states
+            if not action_table:
+                print("ERROR: No ACTION table data found")
+                return
+                
+            # Get the states from the action table keys
+            try:
+                states = sorted(map(int, action_table.keys()))
+            except Exception as e:
+                print(f"ERROR: Cannot convert state keys to integers: {e}")
+                # Fall back to string keys if needed
+                states = sorted(action_table.keys(), key=lambda x: int(x) if x.isdigit() else 0)
+            
+            # Create a combined LR table with both ACTION and GOTO
+            all_symbols = terminals + nonterminals
+            
+            print(f"Setting up LR table with {len(states)} states and {len(all_symbols)} symbols")
+            print(f"Terminals: {terminals}")
+            print(f"Nonterminals: {nonterminals}")
+            
+            # Clear the table
+            self.lr_table.clear()
+            self.lr_table.setRowCount(len(states) + 1)  # +1 for the header row
+            self.lr_table.setColumnCount(len(all_symbols))
+            self.lr_table.setHorizontalHeaderLabels(all_symbols)
+            
+            # Create a header row to distinguish ACTION and GOTO sections
+            header_row = 0
+            for col, symbol in enumerate(all_symbols):
+                if col < len(terminals):
+                    item = QTableWidgetItem("ACTION")
                 else:
-                    self.action_table.setItem(row, col, QTableWidgetItem(""))
+                    item = QTableWidgetItem("GOTO")
+                item.setBackground(QColor("#343a40"))
+                item.setForeground(QColor("white"))
+                font = QFont()
+                font.setBold(True)
+                item.setFont(font)
+                self.lr_table.setItem(header_row, col, item)
+                
+            # Set vertical headers (state numbers)
+            state_headers = [""] + [str(state) for state in states]  # Empty first row for the header
+            self.lr_table.setVerticalHeaderLabels(state_headers)
+        except Exception as e:
+            print(f"ERROR updating parser tables: {str(e)}")
+            import traceback
+            traceback.print_exc()
+        
+        # Set sizing policy for LR table
+        self.lr_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.lr_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        
+        try:
+            # Fill the table (starting from row 1 because row 0 is our header)
+            print(f"Populating table with {len(states)} states")
+            
+            for i, state in enumerate(states):
+                try:
+                    row = i + 1  # +1 to account for header row
+                    state_key = str(state)
+                    state_actions = action_table.get(state_key, {})
+                    state_gotos = goto_table.get(state_key, {})
                     
-        self.action_table.resizeColumnsToContents()
-        
-        # Update GOTO table
-        goto_table = self.parser_tables.get('goto', {})
-        nonterminals = sorted(self.parser_tables.get('nonterminals', []))
-        
-        self.goto_table.setRowCount(len(states))
-        self.goto_table.setColumnCount(len(nonterminals))
-        self.goto_table.setHorizontalHeaderLabels(nonterminals)
-        self.goto_table.setVerticalHeaderLabels([str(state) for state in states])
-        
-        # Set sizing policy for GOTO table
-        self.goto_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.goto_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        
-        for row, state in enumerate(states):
-            state_gotos = goto_table.get(str(state), {})
-            for col, nonterminal in enumerate(nonterminals):
-                if nonterminal in state_gotos:
-                    item = QTableWidgetItem(str(state_gotos[nonterminal]))
-                    item.setBackground(QColor("#e2e3e5"))  # Light gray for GOTO
-                    self.goto_table.setItem(row, col, item)
-                else:
-                    self.goto_table.setItem(row, col, QTableWidgetItem(""))
+                    # Debug
+                    print(f"Processing state {state_key}: {len(state_actions)} actions, {len(state_gotos)} gotos")
                     
-        self.goto_table.resizeColumnsToContents()
+                    # Fill ACTION part (terminals)
+                    for col, terminal in enumerate(terminals):
+                        try:
+                            if terminal in state_actions:
+                                action = state_actions[terminal]
+                                print(f"  Action for {terminal}: {action}")
+                                
+                                # Handle different action formats
+                                if isinstance(action, list):
+                                    action_type, action_value = action
+                                elif isinstance(action, dict):
+                                    action_type = action.get('type')
+                                    action_value = action.get('value')
+                                else:
+                                    action_type, action_value = action
+                                
+                                if action_type == 'shift':
+                                    text = f"s{action_value}"
+                                elif action_type == 'reduce':
+                                    text = f"r{action_value}"
+                                elif action_type == 'accept':
+                                    text = "acc"
+                                else:
+                                    text = str(action)
+                                    
+                                item = QTableWidgetItem(text)
+                                
+                                # Highlight different actions
+                                if action_type == 'shift':
+                                    item.setBackground(QColor("#d4edda"))  # Light green for shifts
+                                elif action_type == 'reduce':
+                                    item.setBackground(QColor("#fff3cd"))  # Light yellow for reduces
+                                elif action_type == 'accept':
+                                    item.setBackground(QColor("#cce5ff"))  # Light blue for accept
+                                    
+                                self.lr_table.setItem(row, col, item)
+                            else:
+                                self.lr_table.setItem(row, col, QTableWidgetItem(""))
+                        except Exception as e:
+                            print(f"Error setting ACTION cell at ({row}, {col}): {str(e)}")
+                            self.lr_table.setItem(row, col, QTableWidgetItem("ERR"))
+                
+                    # Fill GOTO part (nonterminals)
+                    for col, nonterminal in enumerate(nonterminals):
+                        try:
+                            table_col = len(terminals) + col  # Offset by the number of terminals
+                            if nonterminal in state_gotos:
+                                goto_value = state_gotos[nonterminal]
+                                print(f"  Goto for {nonterminal}: {goto_value}")
+                                item = QTableWidgetItem(str(goto_value))
+                                item.setBackground(QColor("#e2e3e5"))  # Light gray for GOTO
+                                self.lr_table.setItem(row, table_col, item)
+                            else:
+                                self.lr_table.setItem(row, table_col, QTableWidgetItem(""))
+                        except Exception as e:
+                            print(f"Error setting GOTO cell at ({row}, {len(terminals) + col}): {str(e)}")
+                            self.lr_table.setItem(row, len(terminals) + col, QTableWidgetItem("ERR"))
+                except Exception as e:
+                    print(f"Error processing state {state}: {str(e)}")
+            
+            print("Resizing columns")
+            self.lr_table.resizeColumnsToContents()
+            print("Table updated successfully")
+        except Exception as e:
+            print(f"Error filling LR table: {str(e)}")
+            import traceback
+            traceback.print_exc()
         
     # Removed change_table_view method as tables are now displayed side by side
     
@@ -839,6 +1014,98 @@ class SyntaxAnalyzerGUI(QMainWindow):
         
         # Adjust column width to content
         self.symbol_table_widget.resizeColumnsToContents()
+        
+    def update_first_follow_tables(self):
+        """Update the FIRST and FOLLOW tables in the GUI"""
+        try:
+            print("Updating FIRST and FOLLOW tables...")
+            # Check if we have access to the analyzer with grammar data
+            if not hasattr(self.analyzer, 'parser_generator') or not hasattr(self.analyzer.parser_generator, 'grammar'):
+                print("No grammar available, cannot update FIRST/FOLLOW tables")
+                self.first_table.clearContents()
+                self.first_table.setRowCount(0)
+                self.follow_table.clearContents()
+                self.follow_table.setRowCount(0)
+                return
+
+            # Get FIRST and FOLLOW sets from the analyzer
+            sets = self.analyzer.get_first_follow_sets()
+            first_sets = sets.get('first', {})
+            follow_sets = sets.get('follow', {})
+            
+            print(f"Got {len(first_sets)} FIRST sets and {len(follow_sets)} FOLLOW sets")
+            
+            # Get terminals and nonterminals for highlighting
+            terminals = set()
+            if hasattr(self.analyzer.parser_generator, 'grammar'):
+                terminals = self.analyzer.parser_generator.grammar.terminals
+            
+            # Update FIRST set table
+            self.first_table.clearContents()
+            self.first_table.setRowCount(len(first_sets))
+            row = 0
+            for symbol, first_set in sorted(first_sets.items()):
+                # Symbol column
+                symbol_item = QTableWidgetItem(symbol)
+                
+                # FIRST set column - format as {a, b, c}
+                first_text = "{" + ", ".join(sorted(first_set)) + "}"
+                first_item = QTableWidgetItem(first_text)
+                
+                # Highlight based on symbol type
+                if symbol in terminals:
+                    symbol_item.setBackground(QColor("#d4edda"))  # Light green for terminals
+                    first_item.setBackground(QColor("#d4edda"))
+                else:
+                    symbol_item.setBackground(QColor("#fff3cd"))  # Light yellow for non-terminals
+                    first_item.setBackground(QColor("#fff3cd"))
+                
+                self.first_table.setItem(row, 0, symbol_item)
+                self.first_table.setItem(row, 1, first_item)
+                row += 1
+                
+            # Update FOLLOW set table
+            self.follow_table.clearContents()
+            self.follow_table.setRowCount(len(follow_sets))
+            row = 0
+            for symbol, follow_set in sorted(follow_sets.items()):
+                # Non-terminal column
+                symbol_item = QTableWidgetItem(symbol)
+                
+                # FOLLOW set column - format as {a, b, c}
+                follow_text = "{" + ", ".join(sorted(follow_set)) + "}"
+                follow_item = QTableWidgetItem(follow_text)
+                
+                # Add special highlighting for the start symbol
+                start_symbol = None
+                if hasattr(self.analyzer.parser_generator, 'grammar'):
+                    start_symbol = self.analyzer.parser_generator.grammar.start_symbol
+                    
+                if start_symbol and symbol == start_symbol:
+                    font = symbol_item.font()
+                    font.setBold(True)
+                    symbol_item.setFont(font)
+                    follow_item.setFont(font)
+                    symbol_item.setBackground(QColor("#cce5ff"))  # Light blue for start symbol
+                    follow_item.setBackground(QColor("#cce5ff"))
+                else:
+                    symbol_item.setBackground(QColor("#fff3cd"))  # Light yellow for other symbols
+                    follow_item.setBackground(QColor("#fff3cd"))
+                
+                self.follow_table.setItem(row, 0, symbol_item)
+                self.follow_table.setItem(row, 1, follow_item)
+                row += 1
+                
+            # Resize columns to content
+            self.first_table.resizeColumnsToContents()
+            self.follow_table.resizeColumnsToContents()
+            
+            print("FIRST and FOLLOW tables updated successfully")
+            
+        except Exception as e:
+            print(f"Error updating FIRST/FOLLOW tables: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
 def main():
     app = QApplication(sys.argv)

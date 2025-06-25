@@ -311,6 +311,17 @@ class SLRParser:
             for item in sorted(state, key=str):
                 print(f"  {item}")
         
+        # Imprimir conjuntos FIRST e FOLLOW
+        print("\nConjuntos FIRST:")
+        for symbol in sorted(self.grammar.first_sets.keys()):
+            first_set = sorted(self.grammar.first_sets[symbol])
+            print(f"  FIRST({symbol}) = {{{', '.join(first_set)}}}")
+            
+        print("\nConjuntos FOLLOW:")
+        for nt in sorted(self.grammar.nonterminals):
+            follow_set = sorted(self.grammar.follow_sets[nt])
+            print(f"  FOLLOW({nt}) = {{{', '.join(follow_set)}}}")
+        
         # Imprimir tabela no formato LR
         print("\nLR table")
         print("State\tACTION\tGOTO")
