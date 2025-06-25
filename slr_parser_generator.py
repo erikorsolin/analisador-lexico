@@ -278,6 +278,16 @@ class SLRParser:
                 "left": left,
                 "right": right
             })
+        # Include FIRST and FOLLOW sets but only for non-terminals
+        first_sets_serializable = {}
+        for nt in self.grammar.nonterminals:
+            if nt in self.grammar.first_sets:
+                first_sets_serializable[nt] = list(self.grammar.first_sets[nt])
+            
+        follow_sets_serializable = {}
+        for nt in self.grammar.nonterminals:
+            if nt in self.grammar.follow_sets:
+                follow_sets_serializable[nt] = list(self.grammar.follow_sets[nt])
             
         data = {
             "action": action_dict,
@@ -286,7 +296,9 @@ class SLRParser:
             "nonterminals": list(self.grammar.nonterminals),
             "start_symbol": self.grammar.start_symbol,
             "augmented_start": self.grammar.augmented_start,
-            "productions": productions_data
+            "productions": productions_data,
+            "first_sets": first_sets_serializable,
+            "follow_sets": follow_sets_serializable
         }
         
         try:
@@ -311,16 +323,8 @@ class SLRParser:
             for item in sorted(state, key=str):
                 print(f"  {item}")
         
-        # Imprimir conjuntos FIRST e FOLLOW
-        print("\nConjuntos FIRST:")
-        for symbol in sorted(self.grammar.first_sets.keys()):
-            first_set = sorted(self.grammar.first_sets[symbol])
-            print(f"  FIRST({symbol}) = {{{', '.join(first_set)}}}")
-            
-        print("\nConjuntos FOLLOW:")
-        for nt in sorted(self.grammar.nonterminals):
-            follow_set = sorted(self.grammar.follow_sets[nt])
-            print(f"  FOLLOW({nt}) = {{{', '.join(follow_set)}}}")
+        # Print FIRST and FOLLOW sets using the grammar's pretty print method
+        self.grammar.print_first_follow_sets()
         
         # Imprimir tabela no formato LR
         print("\nLR table")
