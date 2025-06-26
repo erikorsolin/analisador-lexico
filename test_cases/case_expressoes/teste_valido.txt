@@ -1,0 +1,2 @@
+x + 3 * ( x + y ) * 10 / num - id
+x + 4 * ( x + y ) * 10 / num - id

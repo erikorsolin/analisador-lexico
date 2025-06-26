@@ -227,3 +227,42 @@ class LexicalAnalyzer:
             print(f"Autômato salvo em {filepath}")
         except Exception as e:
             print(f"Erro ao salvar autômato: {str(e)}")
+
+    def analyze_string(self, input_string):
+        """
+        Analisa uma string de entrada (uma sentença completa) e retorna a lista de tokens.
+        """
+        if not self.token_analyzer:
+            print("Erro: TokenAnalyzer não foi gerado. Execute generate_lexical_analyzer() primeiro.")
+            return None
+
+        tokens = self.token_analyzer.analyze(input_string)
+        return tokens
+
+    
+    def match_token(self, lexeme):
+        """
+        Analisa um lexema isolado e retorna o token no formato <lexema, tipo>
+        """
+        if not self.determinized_automaton:
+            print("Erro: Autômato determinizado não foi gerado ainda.")
+            return None
+
+        current_state = 0  # Estado inicial
+
+        for char in lexeme:
+            key = (current_state, char)
+            if key in self.determinized_automaton.transitions:
+                current_state = self.determinized_automaton.transitions[key]
+            else:
+                return None  # Lexema não reconhecido
+
+        # Se terminou num estado final
+        if current_state in self.determinized_automaton.final_states:
+            token_type = self.determinized_automaton.final_states[current_state]
+            return f"<{lexeme}, {token_type}>"
+
+        return None  # Não aceitou
+
+
+

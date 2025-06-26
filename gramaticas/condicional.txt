@@ -1,0 +1,5 @@
+S ::= if ( E ) comando else comando
+comando ::= id = E
+E ::= E + T | E - T | T
+T ::= T * F | T / F | F
+F ::= ( E ) | id | num

@@ -70,38 +70,72 @@ class SyntaxAnalyzer:
             
         if not self.lexical_analyzer.generate_lexical_analyzer():
             return False
-        
-        print(f"Analisando arquivo '{input_file}'...")
-        tokens = self.lexical_analyzer.analyze_file(input_file, output_file)
-        
-        if not tokens:
-            print("Erro na análise léxica.")
-            return False
-            
-        # Mostrar a tabela de símbolos
-        print("\n" + str(self.lexical_analyzer.symbol_table))
-        
-        # Se não for especificado um arquivo de tabelas, apenas retornar após a análise léxica
-        if not parser_tables_file:
-            print("Análise léxica concluída com sucesso.")
-            print("\033[1;33mAVISO: Nenhum arquivo de tabelas do analisador sintático foi especificado. A análise sintática não será realizada.\033[0m")
-            print("Use o comando 'gerar' para criar as tabelas do analisador sintático antes de executar a análise sintática.")
-            return True
-        
-        # Fase 2: Análise sintática
+
         print(f"Carregando tabelas de análise sintática de '{parser_tables_file}'...")
         if not self.parser.load_tables(parser_tables_file):
             return False
-        
-        print("Iniciando análise sintática...")
-        success = self.parser.parse(tokens, debug)
-        
-        if success:
-            print("Análise sintática concluída com sucesso.")
-        else:
-            print("Erro na análise sintática.")
-        
-        return success
+
+        print(f"Analisando arquivo '{input_file}' linha por linha...")
+
+        with open(input_file, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+
+        all_success = True
+
+        for line_num, line in enumerate(lines, start=1):
+            line = line.strip()
+            if not line:
+                continue
+
+            print(f"\n===== Analisando sentença (linha {line_num}): {line} =====")
+            tokens = self.lexical_analyzer.analyze_string(line)
+
+            if not tokens:
+                print(f"Erro na análise léxica da linha {line_num}.")
+                all_success = False
+                continue
+
+            mapped_tokens = []
+            for token in tokens:
+                try:
+                    token_clean = token.strip("<>").strip()
+                    lexeme, token_type = [x.strip() for x in token_clean.split(",", 1)]
+
+                    if token_type == "id":
+                        mapped_tokens.append("id")
+                    elif token_type == "num":
+                        mapped_tokens.append("num")
+                    elif lexeme in ["+", "-", "*", "/", "(", ")"]:
+                        mapped_tokens.append(lexeme)
+                    elif lexeme == "$":
+                        mapped_tokens.append("$")
+                    else:
+                        mapped_tokens.append(lexeme)
+
+                except Exception as e:
+                    print(f"Erro ao processar token '{token}' na linha {line_num}: {e}")
+                    all_success = False
+                    break
+
+            if not mapped_tokens:
+                continue
+
+            if mapped_tokens[-1] != "$":
+                mapped_tokens.append("$")
+
+            print("Tokens mapeados:", mapped_tokens)
+
+            print("Iniciando análise sintática...")
+            success = self.parser.parse(mapped_tokens, debug)
+
+            if success:
+                print(f"Análise sintática da linha {line_num} concluída com sucesso.")
+            else:
+                print(f"Erro de sintaxe na linha {line_num}.")
+                all_success = False
+
+        return all_success
+
     
     def get_first_follow_sets(self):
         """
