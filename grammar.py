@@ -161,39 +161,39 @@ class Grammar:
     def compute_first_sets(self):
         """
         Calcula o conjunto FIRST para cada símbolo da gramática.
-        Implementation based on Algorithm 4.19 from the Dragon Book with
-        special handling for left-recursive grammars.
+        Implementação baseada no Algoritmo 4.19 do Livro do Dragão com
+        tratamento especial para gramáticas com recursão à esquerda.
         """
-        # Step 1: Initialize nullable set and compute nullable symbols
+        # Passo 1: Inicializar conjunto de anuláveis e calcular símbolos anuláveis
         self.compute_nullable()
         
-        # Step 2: Initialize FIRST sets
+        # Step 2: Inicializa FIRST sets
         self.first_sets = {}
         
-        # For terminals, FIRST(X) = {X}
+        # Para terminais, FIRST(X) = {X}
         for terminal in self.terminals:
             self.first_sets[terminal] = {terminal}
         
-        # For non-terminals, start with empty sets
+        # Para nao-terminais, comeca com conjunto vazio
         for nonterminal in self.nonterminals:
             self.first_sets[nonterminal] = set()
             
-            # If the non-terminal is nullable, add ε to its FIRST set
+            # Se o não-terminal é anulável, adiciona ε ao conjunto FIRST
             if nonterminal in self.nullable:
                 self.first_sets[nonterminal].add('')
         
-        # Detect and handle left recursion specially
-        left_recursive = {}  # Map from non-terminal to its non-left-recursive alternatives
+        # Verifica e da tratamento especial para gramáticas com recursão à esquerda
+        left_recursive = {}  # Mapa de não-terminais para suas alternativas não recursivas à esquerda
         for nonterminal in self.nonterminals:
             left_recursive[nonterminal] = []
         
-        # Step 2.5: Handle left recursion separately
+        # Passo 2.5: Tratar recursão à esquerda separadamente
         for left, right in self.productions:
             if right and right[0] != left and right[0] in self.nonterminals:
-                # Non-left-recursive rule like A → BC..., add to special handling
+                # Regra não recursiva à esquerda como A → BC..., adiciona ao tratamento especial
                 left_recursive[left].append(right[0])
         
-        # Propagate FIRST sets from non-left-recursive alternates
+        # Propaga conjuntos FIRST a partir de alternativas não recursivas à esquerda
         changed = True
         while changed:
             changed = False
@@ -205,28 +205,28 @@ class Grammar:
                             changed = True
                             changed = True
         
-        # Step 3: Standard algorithm - iterate until no more changes
+        # Passo 3: Algoritmo padrão - iterar até que não ocorram mais mudanças
         changed = True
         while changed:
             changed = False
             
             for left, right in self.productions:
-                # Skip empty productions, handled earlier
+                # Pular produções vazias, já tratadas anteriormente
                 if not right:
                     continue
                 
-                # Special case: avoid left-recursive FIRST computation which would be circular
+                # Caso especial: evita o cálculo de FIRST recursivo à esquerda que seria circular
                 if right[0] == left:
                     continue
                     
-                # Process the right-hand side symbols
+                # Processar os símbolos do lado direito da produção
                 nullable_prefix = True
                 for i, symbol in enumerate(right):
                     if not nullable_prefix:
                         break
                         
                     if symbol in self.terminals:
-                        # If it's a terminal, add it to FIRST(left)
+                        # Se é um terminal, adiciona ao FIRST(left)
                         if symbol not in self.first_sets[left]:
                             self.first_sets[left].add(symbol)
                             changed = True
@@ -234,25 +234,25 @@ class Grammar:
                         break
                         
                     elif symbol in self.nonterminals:
-                        # Add all non-epsilon symbols from FIRST(symbol) to FIRST(left)
+                        # Adiciona todos os símbolos não-epsilon de FIRST(symbol) para FIRST(left)
                         for term in self.first_sets[symbol]:
                             if term != '' and term not in self.first_sets[left]:
                                 self.first_sets[left].add(term)
                                 changed = True
                                 
-                        # If this symbol is not nullable, stop processing
+                        # Se este símbolo não for anulável, pare o processamento
                         if symbol not in self.nullable:
                             nullable_prefix = False
                             break
-                            
-                    else:  # Unknown symbol, treat as terminal
+                    # Símbolo desconhecido, trata como terminal
+                    else:  
                         if symbol not in self.first_sets[left]:
                             self.first_sets[left].add(symbol)
                             changed = True
                         nullable_prefix = False
                         break
                         
-                # If all symbols in the RHS are nullable, add epsilon to FIRST(left)
+                # Se todos os símbolos no lado direito são anuláveis, adiciona epsilon ao FIRST(left)
                 if nullable_prefix and not any(s not in self.nullable for s in right):
                     if '' not in self.first_sets[left]:
                         self.first_sets[left].add('')
@@ -260,38 +260,37 @@ class Grammar:
     
     def first_of_string(self, symbols):
         """
-        Compute FIRST set of a string of grammar symbols.
-        Implementation based on the Dragon Book algorithm.
+        Calcula o conjunto FIRST de uma cadeia de símbolos da gramática.
+        Implementação baseada no algoritmo do Livro do Dragão.
         """
         if not symbols:
-            return {''}  # FIRST of empty string is {ε}
+            return {''}  # FIRST da cadeia vazia é {ε}
         
-        # Get the first symbol
         first_symbol = symbols[0]
         result = set()
         
-        # Case 1: First symbol is a terminal
+        # Caso 1: O primeiro símbolo é um terminal
         if first_symbol in self.terminals:
             return {first_symbol}
             
-        # Case 2: First symbol is a non-terminal
+        # Caso 2: O primeiro símbolo é um não-terminal
         elif first_symbol in self.nonterminals:
-            # Add all non-epsilon symbols from FIRST(first_symbol)
+            # Adicionar todos os símbolos não-epsilon do FIRST(first_symbol)
             for term in self.first_sets[first_symbol]:
                 if term != '':
                     result.add(term)
             
-            # If first_symbol is nullable & more symbols follow, also consider FIRST of the rest
+            # Se o primeiro símbolo for anulável e houver mais símbolos, considere também o FIRST do restante
             if first_symbol in self.nullable and len(symbols) > 1:
                 rest_first = self.first_of_string(symbols[1:])
                 for term in rest_first:
                     result.add(term)
                     
-            # If all symbols are nullable, add ε
+            # Se todos os símbolos forem anuláveis, adiciona ε
             if self.is_string_nullable(symbols):
                 result.add('')
                 
-        # Case 3: Unknown symbol (treat as terminal)
+        # Caso 3: Símbolo desconhecido (trata como terminal)
         else:
             result.add(first_symbol)
             
@@ -300,54 +299,54 @@ class Grammar:
     def compute_follow_sets(self):
         """
         Calcula o conjunto FOLLOW para cada não terminal.
-        Implementation based on Algorithm 4.20 from the Dragon Book.
+        Implementação baseada no Algoritmo 4.20 do Livro do Dragão.
         """
-        # Initialize FOLLOW sets (only for non-terminals)
+        # Inicializa os conjuntos FOLLOW (apenas para não-terminais)
         self.follow_sets = {nt: set() for nt in self.nonterminals}
         
-        # Rule 1: Place $ in FOLLOW(S), where S is the start symbol
-        # For augmented grammar, add $ to both original start and augmented start
+        # Regra 1: Coloca $ em FOLLOW(S), onde S é o símbolo inicial
+        # Para gramática aumentada, adiciona $ tanto no símbolo inicial original quanto no aumentado
         self.follow_sets[self.start_symbol].add('$')
         
-        # If this is an augmented grammar, $ should be in FOLLOW of the augmented start symbol
+        # Se esta for uma gramática aumentada, $ deve estar no FOLLOW do símbolo inicial aumentado
         if self.augmented and self.augmented_start:
             self.follow_sets[self.augmented_start].add('$')
         
-        # Apply FOLLOW set rules until no more changes
+        # Aplica as regras do conjunto FOLLOW até que não ocorram mais mudanças
         changed = True
         while changed:
             changed = False
             
-            # Apply rules for each production A → α
+            # Aplica regras para cada produção A → α
             for left, right in self.productions:
-                # Skip epsilon productions
+                # Pula produções vazias
                 if not right:
                     continue
                     
-                # For each B in the right side
+                # Para cada B no lado direito
                 for i, symbol in enumerate(right):
                     if symbol not in self.nonterminals:
-                        continue  # Only interested in non-terminals
+                        continue  # Apenas interessado em não-terminais
                     
-                    # Rule 2: For A → αBβ, add FIRST(β) - {ε} to FOLLOW(B)
-                    if i < len(right) - 1:  # If there's something after B
-                        # Get FIRST(β) where β = right[i+1:]
+                    # Regra 2: Para A → αBβ, adiciona FIRST(β) - {ε} ao FOLLOW(B)
+                    if i < len(right) - 1:  # Se houver algo após B
+                        # Obter FIRST(β) onde β = right[i+1:]
                         beta_first = self.first_of_string(right[i+1:])
                         
-                        # Add all non-epsilon symbols from FIRST(β) to FOLLOW(B)
+                        # Adiciona todos os símbolos não-epsilon de FIRST(β) ao FOLLOW(B)
                         for term in beta_first:
                             if term != '' and term not in self.follow_sets[symbol]:
                                 self.follow_sets[symbol].add(term)
                                 changed = True
                         
-                        # Rule 3: If ε is in FIRST(β), add FOLLOW(A) to FOLLOW(B)
+                        # Regra 3: Se ε está em FIRST(β), adiciona FOLLOW(A) ao FOLLOW(B)
                         if '' in beta_first:
                             old_size = len(self.follow_sets[symbol])
                             self.follow_sets[symbol].update(self.follow_sets[left])
                             if len(self.follow_sets[symbol]) > old_size:
                                 changed = True
                     else:
-                        # Rule 3: For A → αB, add FOLLOW(A) to FOLLOW(B)
+                        # Regra 3: Para A → αB, adiciona FOLLOW(A) ao FOLLOW(B)
                         old_size = len(self.follow_sets[symbol])
                         self.follow_sets[symbol].update(self.follow_sets[left])
                         if len(self.follow_sets[symbol]) > old_size:
@@ -355,13 +354,13 @@ class Grammar:
     
     def is_string_nullable(self, symbols):
         """
-        Checks if a string of symbols can derive ε.
-        A string is nullable if all symbols in it are nullable.
+        Verifica se uma cadeia de símbolos pode derivar ε.
+        Uma cadeia é anulável se todos os símbolos nela são anuláveis.
         """
         if not symbols:
-            return True  # Empty string is nullable
+            return True  # Cadeia vazia é anulável
             
-        # A string is nullable if all its symbols are nullable
+        # Uma cadeia é anulável se todos os seus símbolos são anuláveis
         for symbol in symbols:
             if symbol not in self.nullable:
                 return False
@@ -370,21 +369,21 @@ class Grammar:
     
     def print_first_follow_sets(self):
         """
-        Pretty prints the FIRST and FOLLOW sets for non-terminals only.
-        Following the Dragon Book convention, showing only non-terminals.
+        Imprime de forma legível os conjuntos FIRST e FOLLOW apenas para não-terminais.
+        Seguindo a convenção do Livro do Dragão, mostrando apenas não-terminais.
         """
         print("\nFIRST / FOLLOW table")
         print("Nonterminal\tFIRST\tFOLLOW")
         
-        # Patch for left-recursive grammars
+        # Correção para gramáticas com recursão à esquerda
         self._patch_left_recursive_first_sets()
         
-        # Print for non-terminals only
+        # Imprime apenas para não-terminais
         for nt in sorted(self.nonterminals):
             first = self.first_sets.get(nt, set())
             follow = self.follow_sets.get(nt, set())
             
-            # Format the sets with ε for empty string
+            # Formata os conjuntos com ε para a cadeia vazia
             first_str = "{" + ", ".join(["ε" if s == '' else s for s in sorted(first)]) + "}"
             follow_str = "{" + ", ".join(["$" if s == '$' else ("ε" if s == '' else s) for s in sorted(follow)]) + "}"
             
@@ -392,28 +391,28 @@ class Grammar:
     
     def _patch_left_recursive_first_sets(self):
         """
-        Patch FIRST sets for left-recursive grammars based on the Dragon Book algorithm.
-        Called by print_first_follow_sets to ensure correct output.
+        Corrige os conjuntos FIRST para gramáticas com recursão à esquerda baseado no algoritmo do Livro do Dragão.
+        Chamado por print_first_follow_sets para garantir uma saída correta.
         
-        Note: This method doesn't modify the original FIRST sets, it only provides
-        correct calculations for display purposes.
+        Nota: Este método não modifica os conjuntos FIRST originais, apenas fornece
+        cálculos corretos para fins de exibição.
         """
-        # Check for grammar structure and left recursion
+        # Verifica a estrutura da gramática e recursão à esquerda
         has_left_recursion = False
         for left, right in self.productions:
             if right and right[0] == left:
                 has_left_recursion = True
                 break
         
-        # Special case for arithmetic expression grammar with E, T, F structure
+        # Caso especial para gramáticas de expressões aritméticas com estrutura E, T, F
         if ('E' in self.nonterminals and 'T' in self.nonterminals and 'F' in self.nonterminals and 
             has_left_recursion):
-            print("Detected arithmetic expression grammar with left recursion")
+            print("Detectada gramática de expressão aritmética com recursão à esquerda")
             
-            # Find terminal symbols that should be in FIRST sets
+            # Encontra símbolos terminais que devem estar nos conjuntos FIRST
             terminals_to_include = set()
             
-            # Look at productions for F (lowest precedence)
+            # Analisa as produções para F (menor precedência)
             for left, right in self.productions:
                 if left == 'F':
                     if right and right[0] in self.terminals:
@@ -421,42 +420,42 @@ class Grammar:
                     elif right and right[0] == '(':
                         terminals_to_include.add('(')
                     
-                    # Check for common patterns like F -> id | num
+                    # Verifica padrões comuns como F -> id | num
                     for sym in right:
                         if sym in ['id', 'num'] or sym in self.terminals:
                             terminals_to_include.add(sym)
             
-            # If we found terminals to include, update the FIRST sets correctly
-            # This ensures grammar-specific knowledge is applied
+            # Se encontramos terminais para incluir, atualizamos os conjuntos FIRST corretamente
+            # Isso garante que o conhecimento específico da gramática seja aplicado
             if terminals_to_include:
-                print(f"Fixing FIRST sets with terminals: {terminals_to_include}")
+                print(f"Corrigindo conjuntos FIRST com terminais: {terminals_to_include}")
                 if 'F' in self.nonterminals:
                     self.first_sets['F'] = set(terminals_to_include)
-                    # Preserve epsilon if it was there
+                    # Preserva epsilon se estava presente
                     if '' in self.first_sets.get('F', set()):
                         self.first_sets['F'].add('')
                 
-                # T can derive F, so it has the same FIRST set
+                # T pode derivar F, então tem o mesmo conjunto FIRST
                 if 'T' in self.nonterminals:
                     self.first_sets['T'] = set(terminals_to_include)
                     if '' in self.first_sets.get('T', set()):
                         self.first_sets['T'].add('')
                 
-                # E can derive T, so it has the same FIRST set
+                # E pode derivar T, então tem o mesmo conjunto FIRST
                 if 'E' in self.nonterminals:
                     self.first_sets['E'] = set(terminals_to_include)
                     if '' in self.first_sets.get('E', set()):
                         self.first_sets['E'].add('')
                 
-                # If augmented, also fix E' (same as E)
+                # Se aumentada, também corrige E' (mesmo que E)
                 if "E'" in self.nonterminals:
                     self.first_sets["E'"] = set(terminals_to_include)
                     if '' in self.first_sets.get("E'", set()):
                         self.first_sets["E'"].add('')
                         
-                # If we have S and "comando" in the grammar (like in your case)
+                # Se temos S e "comando" na gramática (como no seu caso)
                 if 'S' in self.nonterminals:
-                    # Look at S productions to identify its true FIRST set
+                    # Analisa as produções S para identificar seu conjunto FIRST verdadeiro
                     s_first = set()
                     for left, right in self.productions:
                         if left == 'S' and right:
@@ -470,12 +469,12 @@ class Grammar:
                     if s_first:
                         self.first_sets['S'] = s_first
                     
-                    # Also handle S'
+                    # Também trata S'
                     if "S'" in self.nonterminals:
                         self.first_sets["S'"] = set(self.first_sets.get('S', set()))
                 
                 if 'comando' in self.nonterminals:
-                    # Look at comando productions to identify its true FIRST set
+                    # Analisa as produções de comando para identificar seu conjunto FIRST verdadeiro
                     comando_first = set()
                     for left, right in self.productions:
                         if left == 'comando' and right:
@@ -489,23 +488,23 @@ class Grammar:
                 
                 return
             
-        # General case for other left-recursive grammars
-        # (Rest of the method remains unchanged)
+        # Caso geral para outras gramáticas com recursão à esquerda
+        # (O resto do método permanece inalterado)
         left_recursive_nts = set()
         for left, right in self.productions:
             if right and right[0] == left:
                 left_recursive_nts.add(left)
                 
         if not left_recursive_nts:
-            return  # No left recursion detected
+            return  # Nenhuma recursão à esquerda detectada
             
-        # Find base non-terminals (that derive directly to terminals)
+        # Encontra não-terminais base (que derivam diretamente para terminais)
         base_nts = set()
         for left, right in self.productions:
             if right and all(sym in self.terminals for sym in right):
                 base_nts.add(left)
                 
-        # Build dependency graph
+        # Constrói grafo de dependência
         dependencies = {nt: set() for nt in self.nonterminals}
         for left, right in self.productions:
             if not right:
@@ -513,15 +512,15 @@ class Grammar:
             if right[0] in self.nonterminals and right[0] != left:
                 dependencies[left].add(right[0])
         
-        # Propagate FIRST sets from base non-terminals up
-        # to left-recursive non-terminals
+        # Propaga conjuntos FIRST dos não-terminais base
+        # até os não-terminais com recursão à esquerda
         for base in base_nts:
             base_terminals = set()
             for term in self.first_sets[base]:
                 if term != '':
                     base_terminals.add(term)
                     
-            # Propagate to dependent non-terminals
+            # Propaga para não-terminais dependentes
             for lr_nt in left_recursive_nts:
                 path_exists = False
                 visited = set()

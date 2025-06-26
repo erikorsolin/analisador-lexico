@@ -278,7 +278,7 @@ class SLRParser:
                 "left": left,
                 "right": right
             })
-        # Include FIRST and FOLLOW sets but only for non-terminals
+        # Inclui FIRST e FOLLOW sets
         first_sets_serializable = {}
         for nt in self.grammar.nonterminals:
             if nt in self.grammar.first_sets:
@@ -289,8 +289,8 @@ class SLRParser:
             if nt in self.grammar.follow_sets:
                 follow_sets_serializable[nt] = list(self.grammar.follow_sets[nt])
             
-        # Ensure terminals and nonterminals are properly separated
-        # Ensure no non-terminal appears in the terminals list
+        # Garantir que terminais e não-terminais estejam adequadamente separados
+        # Garantir que nenhum não-terminal apareça na lista de terminais
         cleaned_terminals = set(self.grammar.terminals) - set(self.grammar.nonterminals)
         
         data = {
@@ -327,10 +327,10 @@ class SLRParser:
             for item in sorted(state, key=str):
                 print(f"  {item}")
         
-        # Print FIRST and FOLLOW sets using the grammar's pretty print method
+        # Imprimir os conjuntos FIRST e FOLLOW usando o método de impressão da gramática
         self.grammar.print_first_follow_sets()
         
-        # Apply the patching algorithm for left-recursive grammars for detailed outputs
+        # Aplicar o algoritmo de correção para gramáticas recursivas à esquerda para saídas detalhadas
         self.grammar._patch_left_recursive_first_sets()
         
         # Imprimir tabela no formato LR
