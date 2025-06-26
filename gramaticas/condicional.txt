@@ -1,0 +1,8 @@
+S->pr delim E delim S
+S->pr delim E delim S pr S
+S->delim L delim
+L->S L
+L->ε
+E->id op num
+E->id op id
+E->num

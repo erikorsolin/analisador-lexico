@@ -1,0 +1,3 @@
+int x ;
+float resultado ;
+int a ; float b ;

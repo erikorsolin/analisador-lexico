@@ -65,60 +65,48 @@ class SLRParser:
         Analisa uma sequência de tokens usando o algoritmo LR.
         Retorna True se a análise for bem-sucedida, False caso contrário.
         """
-        # Adicionar um marcador de fim ($) aos tokens
+        # Adicionar marcador de fim ($)
         tokens = tokens + ["$"]
-        
-        # Inicializar pilha com o estado 0
+
         stack = [0]
         token_index = 0
-        
+
         if debug:
             print("\ntokens:", tokens)
             print("Início da análise sintática:")
             print(f"{'Pilha':30} {'Entrada':30} {'Ação'}")
-        
+
         while True:
-            # Estado atual é o topo da pilha
             current_state = stack[-1]
-            current_token = tokens[token_index]
-            
-            # Extrair informações do token
-            token_symbol = self._extract_token_symbol(current_token)
-            
+            current_token = tokens[token_index]  # Agora o token já é o símbolo que o parser espera (ex: 'id', '+', '(', ')', etc)
+
             if debug:
                 stack_str = " ".join(str(s) for s in stack)
                 input_str = " ".join(tokens[token_index:])
-                # Make sure to have exactly two spaces as separator for the pattern matching
                 print(f"{stack_str:30}  {input_str:30}  ", end="")
-            
-            # Verificar a ação na tabela
-            if current_state in self.action_table and token_symbol in self.action_table[current_state]:
-                action = self.action_table[current_state][token_symbol]
+
+            # Verificar ação
+            if current_state in self.action_table and current_token in self.action_table[current_state]:
+                action = self.action_table[current_state][current_token]
                 action_type, action_value = action
-                
+
                 if action_type == 'shift':
-                    # Shift: Empilhar token e próximo estado
-                    stack.append(token_symbol)
+                    stack.append(current_token)
                     stack.append(action_value)
                     token_index += 1
-                    
                     if debug:
                         print(f"Shift {action_value}")
-                        
+
                 elif action_type == 'reduce':
-                    # Reduce: Aplicar produção
                     production = self.productions[action_value]
                     left, right = production
-                    
-                    # Desempilhar 2 * |β| símbolos (estados e símbolos)
+
                     num_to_pop = 2 * len(right)
                     if num_to_pop > 0:
                         stack = stack[:-num_to_pop]
-                    
-                    # Empilhar o não terminal
+
                     stack.append(left)
-                    
-                    # Consultar GOTO
+
                     top_state = stack[-2]
                     if top_state in self.goto_table and left in self.goto_table[top_state]:
                         goto_state = self.goto_table[top_state][left]
@@ -127,20 +115,18 @@ class SLRParser:
                         if debug:
                             print(f"Erro: Não há transição GOTO[{top_state}, {left}]")
                         return False
-                    
+
                     if debug:
                         prod_str = f"{left} → {' '.join(right) if right else 'ε'}"
                         print(f"Reduce {action_value}: {prod_str}")
-                        
+
                 elif action_type == 'accept':
-                    # Accept: Análise concluída com sucesso
                     if debug:
                         print("Accept - Análise concluída com sucesso")
                     return True
             else:
-                # Erro de sintaxe
                 if debug:
-                    print(f"Erro de sintaxe: não há ação definida para o estado {current_state} e símbolo '{token_symbol}'")
+                    print(f"Erro de sintaxe: não há ação definida para o estado {current_state} e símbolo '{current_token}'")
                     print(f"Token atual: '{current_token}'")
                     print(f"Ações disponíveis para o estado {current_state}: {self.action_table.get(current_state, {})}")
                     print(f"Tokens esperados: {list(self.action_table.get(current_state, {}).keys())}")

@@ -5,120 +5,69 @@ class TokenAnalyzer:
     def __init__(self, automaton, symbol_table):
         self.automaton = automaton
         self.symbol_table = symbol_table
-        self.last_tokens = []  # Store the last tokens generated
-    
+        self.last_tokens = []
+
     def analyze(self, text):
-        """
-        Analisa o texto e retorna a lista de tokens no formato apropriado para análise sintática:
-        - Identificadores: <id, índice>
-        - Palavras reservadas: <lexema, PR>
-        - Outros tokens: <lexema, padrão>
-        """
         tokens = []
-        self.last_tokens = []  # Reset the last tokens
+        self.last_tokens = []
         position = 0
-        
-        while position < len(text):
-            # Pular espaços em branco
-            while position < len(text) and text[position].isspace():
+        text_length = len(text)
+
+        while position < text_length:
+            # Pular espaços
+            while position < text_length and text[position].isspace():
                 position += 1
 
-            if position >= len(text):
+            if position >= text_length:
                 break
 
-            # Verificar se é um comentário de linha
-            if position + 1 < len(text) and text[position:position+2] == "//":
-                # Encontrar o final do comentário de linha
-                end_of_line = text.find('\n', position)
-                if end_of_line == -1:
-                    end_of_line = len(text)
-
-                position = end_of_line
-                continue
-
-            # Pular espaços em branco
-            while position < len(text) and text[position].isspace():
-                position += 1
-            
-            if position >= len(text):
-                break
-            
-            # Tentar reconhecer o próximo token
             token = self._get_next_token(text, position)
-            
+
             if token:
                 lexeme, pattern, length = token
-                
-                # Atualizar a tabela de símbolos e obter o formato adequado do token
                 is_new, token_value = self.symbol_table.add_symbol(lexeme, pattern)
-                
+
                 if pattern == "id":
-                    # Para identificadores, usamos o formato <id, índice>
-                    tokens.append(f"<id, {token_value}>")
+                    tokens.append(f"<{lexeme}, id>")
+                elif pattern == "num":
+                    tokens.append(f"<{lexeme}, num>")
                 elif lexeme in self.symbol_table.reserved_words:
-                    # Para palavras reservadas, usamos o formato <lexema, PR>
                     tokens.append(f"<{lexeme}, PR>")
                 else:
-                    # Para outros tokens, usamos o formato <lexema, padrão>
                     tokens.append(f"<{lexeme}, {pattern}>")
-                
+
                 position += length
             else:
-                # Caractere não reconhecido
-                error_lexeme = text[position]
-                tokens.append(f"<{error_lexeme}, erro!>")
-                position += 1
-        
-        # Store the tokens before returning
-        self.last_tokens = tokens.copy()
+                print(f"Erro léxico: lexema '{text[position]}' não reconhecido.")
+                return None
+
         return tokens
-    
+
     def _get_next_token(self, text, start_pos):
-        """
-        Reconhece o próximo token no texto a partir da posição especificada.
-        Retorna uma tupla (lexeme, pattern, length) ou None se nenhum token for reconhecido.
-        """
         current_state = self.automaton.initial_state
-        max_final_pos = -1
-        max_final_pattern = None
-        
+        last_final_state = None
+        last_final_pos = -1
         pos = start_pos
-        in_string = text[start_pos] == '"' if start_pos < len(text) else False
-        
+
         while pos < len(text):
             char = text[pos]
-            
-            if char.isspace() and not in_string:
-                break
-                
-            if char == '"' and (pos == start_pos or text[pos-1] != '\\'):
-                if pos > start_pos:  # Não alternar no primeiro caractere
-                    in_string = not in_string
-            
-            # Verificar se há transição para este caractere
-            next_state = None
-            
-            for symbol, to_states in self.automaton.transitions.get(current_state, {}).items():
-                if symbol == char:
-                    next_state = next(iter(to_states))  # AFD tem apenas um próximo estado
-                    break
-            
-            if next_state is not None:
+            transitions = self.automaton.transitions.get(current_state, {})
+            next_state = transitions.get(char)
+
+            if next_state:
+                next_state = next(iter(next_state))
                 current_state = next_state
                 pos += 1
-                
-                # Verificar se este é um estado final
+
                 for state, pattern in self.automaton.final_states:
                     if state == current_state:
-                        max_final_pos = pos - 1
-                        max_final_pattern = pattern
-                        break
+                        last_final_state = pattern
+                        last_final_pos = pos
             else:
-                # Não há transição para este caractere
                 break
-        
-        if max_final_pos >= start_pos:
-            lexeme = text[start_pos:max_final_pos + 1]
-            return (lexeme, max_final_pattern, len(lexeme))
-        
+
+        if last_final_pos != -1 and last_final_pos > start_pos:
+            lexeme = text[start_pos:last_final_pos]
+            return (lexeme, last_final_state, len(lexeme))
+
         return None
