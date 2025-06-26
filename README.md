@@ -103,6 +103,39 @@ Este comando remove todos os arquivos temporários gerados pelo analisador léxi
 
 O arquivo de definições deve conter uma expressão regular por linha, no formato:
 
+```
+nome_padrao: expressao_regular
+```
+
+Exemplo:
+
+``` 
+pr: if | else | while | for | int | float | return
+id: [a-zA-Z]([a-zA-Z]|[0-9])*
+num: [1-9]([0-9])* | 0
+op: \+ | \- | \* | \/ | = | < | > | <= | >= | ==
+delim: \( | \) | \{ | \} | ; | ,
+```
+Saída
+
+O programa gerará um arquivo de saída contendo os tokens encontrados no formato:
+
+```
+<lexema, padrão>
+
+```
+Exemplo:
+
+```
+<if, PR>
+<(, delim>
+<x, id>
+<>, op>
+<5, num>
+<), delim>
+```
+
+
 ## Analisador Sintático SLR
 
 O analisador sintático SLR complementa o analisador léxico, permitindo a verificação da estrutura sintática do código de acordo com uma gramática especificada.
@@ -162,38 +195,6 @@ F ::= ( E ) | id
 ```
 
 O sistema irá automaticamente aumentar a gramática com uma nova produção inicial S' → S.
-
-```
-nome_padrao: expressao_regular
-```
-
-Exemplo:
-
-``` 
-pr: if | else | while | for | int | float | return
-id: [a-zA-Z]([a-zA-Z]|[0-9])*
-num: [1-9]([0-9])* | 0
-op: \+ | \- | \* | \/ | = | < | > | <= | >= | ==
-delim: \( | \) | \{ | \} | ; | ,
-```
-Saída
-
-O programa gerará um arquivo de saída contendo os tokens encontrados no formato:
-
-```
-<lexema, padrão>
-
-```
-Exemplo:
-
-```
-<if, PR>
-<(, delim>
-<x, id>
-<>, op>
-<5, num>
-<), delim>
-```
 
 
 ## Estrutura do Projeto
