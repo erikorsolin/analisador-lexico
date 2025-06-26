@@ -289,10 +289,14 @@ class SLRParser:
             if nt in self.grammar.follow_sets:
                 follow_sets_serializable[nt] = list(self.grammar.follow_sets[nt])
             
+        # Ensure terminals and nonterminals are properly separated
+        # Ensure no non-terminal appears in the terminals list
+        cleaned_terminals = set(self.grammar.terminals) - set(self.grammar.nonterminals)
+        
         data = {
             "action": action_dict,
             "goto": goto_dict,
-            "terminals": list(self.grammar.terminals),
+            "terminals": list(cleaned_terminals),
             "nonterminals": list(self.grammar.nonterminals),
             "start_symbol": self.grammar.start_symbol,
             "augmented_start": self.grammar.augmented_start,

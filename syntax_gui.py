@@ -1083,8 +1083,11 @@ class SyntaxAnalyzerGUI(QMainWindow):
                 # Symbol column
                 symbol_item = QTableWidgetItem(symbol)
                 
+                # Convert empty strings to "ε" for epsilon for better display
+                formatted_set = [("ε" if s == '' else s) for s in sorted(first_set)]
+                
                 # FIRST set column - format as {a, b, c}
-                first_text = "{" + ", ".join(sorted(first_set)) + "}"
+                first_text = "{" + ", ".join(formatted_set) + "}"
                 first_item = QTableWidgetItem(first_text)
                 
                 # Highlight based on symbol type
@@ -1107,9 +1110,13 @@ class SyntaxAnalyzerGUI(QMainWindow):
                 # Non-terminal column
                 symbol_item = QTableWidgetItem(symbol)
                 
+                # Format FOLLOW set items ($ stays as is, empty string becomes ε)
+                formatted_set = [("ε" if s == '' else s) for s in sorted(follow_set)]
+                
                 # FOLLOW set column - format as {a, b, c}
-                follow_text = "{" + ", ".join(sorted(follow_set)) + "}"
+                follow_text = "{" + ", ".join(formatted_set) + "}"
                 follow_item = QTableWidgetItem(follow_text)
+                
                 
                 # Add special highlighting for the start symbol
                 start_symbol = None

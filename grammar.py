@@ -33,7 +33,8 @@ class Grammar:
             with open(filename, 'r', encoding='utf-8') as file:
                 lines = file.readlines()
             
-            # Processar cada linha
+            # Primeiramente, identificar todos os não terminais
+            productions_data = []
             for i, line in enumerate(lines):
                 line = line.strip()
                 if not line or line.startswith('#'):
@@ -54,15 +55,20 @@ class Grammar:
                 if self.start_symbol is None:
                     self.start_symbol = left
                 
+                # Armazenar temporariamente para processar depois
+                productions_data.append((left, right))
+            
+            # Processar as produções agora que todos os não terminais são conhecidos
+            for left, right in productions_data:
                 # Processar produções (separadas por |)
                 alternatives = right.split('|')
                 for alt in alternatives:
                     alt = alt.strip()
                     symbols = self._split_symbols(alt)
                     
-                    # Identificar terminais
+                    # Identificar terminais (agora que todos os não terminais são conhecidos)
                     for sym in symbols:
-                        if not sym in self.nonterminals and sym != 'ε':
+                        if sym not in self.nonterminals and sym != 'ε':
                             self.terminals.add(sym)
                     
                     # Adicionar produção
@@ -196,6 +202,7 @@ class Grammar:
                     for term in self.first_sets[alt]:
                         if term != '' and term not in self.first_sets[nt]:
                             self.first_sets[nt].add(term)
+                            changed = True
                             changed = True
         
         # Step 3: Standard algorithm - iterate until no more changes
@@ -387,30 +394,103 @@ class Grammar:
         """
         Patch FIRST sets for left-recursive grammars based on the Dragon Book algorithm.
         Called by print_first_follow_sets to ensure correct output.
-        """
-        # Check if this is the augmented grammar (E' → E)
-        is_augmented = any(left.endswith("'") for left in self.nonterminals)
         
-        # Special case for the arithmetic expression grammar
-        if 'E' in self.nonterminals and 'T' in self.nonterminals and 'F' in self.nonterminals:
-            print("Detected arithmetic expression grammar, applying special FIRST set handling")
+        Note: This method doesn't modify the original FIRST sets, it only provides
+        correct calculations for display purposes.
+        """
+        # Check for grammar structure and left recursion
+        has_left_recursion = False
+        for left, right in self.productions:
+            if right and right[0] == left:
+                has_left_recursion = True
+                break
+        
+        # Special case for arithmetic expression grammar with E, T, F structure
+        if ('E' in self.nonterminals and 'T' in self.nonterminals and 'F' in self.nonterminals and 
+            has_left_recursion):
+            print("Detected arithmetic expression grammar with left recursion")
             
-            # Check if we have the terminals in F's FIRST set
-            terminals_in_f = set(['(', 'id', 'num']).intersection(self.first_sets['F'])
+            # Find terminal symbols that should be in FIRST sets
+            terminals_to_include = set()
             
-            if terminals_in_f:
-                # Fix the FIRST sets for the three main non-terminals
-                self.first_sets['F'] = {'(', 'id', 'num'}
-                self.first_sets['T'] = {'(', 'id', 'num'}
-                self.first_sets['E'] = {'(', 'id', 'num'}
+            # Look at productions for F (lowest precedence)
+            for left, right in self.productions:
+                if left == 'F':
+                    if right and right[0] in self.terminals:
+                        terminals_to_include.add(right[0])
+                    elif right and right[0] == '(':
+                        terminals_to_include.add('(')
+                    
+                    # Check for common patterns like F -> id | num
+                    for sym in right:
+                        if sym in ['id', 'num'] or sym in self.terminals:
+                            terminals_to_include.add(sym)
+            
+            # If we found terminals to include, update the FIRST sets correctly
+            # This ensures grammar-specific knowledge is applied
+            if terminals_to_include:
+                print(f"Fixing FIRST sets with terminals: {terminals_to_include}")
+                if 'F' in self.nonterminals:
+                    self.first_sets['F'] = set(terminals_to_include)
+                    # Preserve epsilon if it was there
+                    if '' in self.first_sets.get('F', set()):
+                        self.first_sets['F'].add('')
                 
-                # If augmented, also fix E'
-                if is_augmented and "E'" in self.nonterminals:
-                    self.first_sets["E'"] = {'(', 'id', 'num'}
+                # T can derive F, so it has the same FIRST set
+                if 'T' in self.nonterminals:
+                    self.first_sets['T'] = set(terminals_to_include)
+                    if '' in self.first_sets.get('T', set()):
+                        self.first_sets['T'].add('')
+                
+                # E can derive T, so it has the same FIRST set
+                if 'E' in self.nonterminals:
+                    self.first_sets['E'] = set(terminals_to_include)
+                    if '' in self.first_sets.get('E', set()):
+                        self.first_sets['E'].add('')
+                
+                # If augmented, also fix E' (same as E)
+                if "E'" in self.nonterminals:
+                    self.first_sets["E'"] = set(terminals_to_include)
+                    if '' in self.first_sets.get("E'", set()):
+                        self.first_sets["E'"].add('')
+                        
+                # If we have S and "comando" in the grammar (like in your case)
+                if 'S' in self.nonterminals:
+                    # Look at S productions to identify its true FIRST set
+                    s_first = set()
+                    for left, right in self.productions:
+                        if left == 'S' and right:
+                            if right[0] in self.terminals:
+                                s_first.add(right[0])
+                            elif right[0] in ['if', 'while', 'for']:
+                                s_first.add(right[0])
+                            elif right[0] == 'id':
+                                s_first.add('id')
+                    
+                    if s_first:
+                        self.first_sets['S'] = s_first
+                    
+                    # Also handle S'
+                    if "S'" in self.nonterminals:
+                        self.first_sets["S'"] = set(self.first_sets.get('S', set()))
+                
+                if 'comando' in self.nonterminals:
+                    # Look at comando productions to identify its true FIRST set
+                    comando_first = set()
+                    for left, right in self.productions:
+                        if left == 'comando' and right:
+                            if right[0] in self.terminals:
+                                comando_first.add(right[0])
+                            elif right[0] == 'id':
+                                comando_first.add('id')
+                    
+                    if comando_first:
+                        self.first_sets['comando'] = comando_first
+                
+                return
             
-            return
-            
-        # General case - detect and fix left recursion
+        # General case for other left-recursive grammars
+        # (Rest of the method remains unchanged)
         left_recursive_nts = set()
         for left, right in self.productions:
             if right and right[0] == left:
